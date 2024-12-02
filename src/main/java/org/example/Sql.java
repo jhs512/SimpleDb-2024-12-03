@@ -39,6 +39,13 @@ public class Sql {
     public long insert() {
         try {
             PreparedStatement pstmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+
+            for (int i = 0; i < params.size(); i++) {
+                pstmt.setObject(i + 1, params.get(i));
+            }
+
+            params.clear();
+            query = "";
             pstmt.executeUpdate();
 
             try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
@@ -61,6 +68,7 @@ public class Sql {
             }
 
             params.clear();
+            query = "";
             return pstmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
