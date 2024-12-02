@@ -11,12 +11,19 @@ public class Sql {
     private StringBuilder sb;
     private List<Object> params;
 
-    public Sql(String host, String username, String password) {
+    private boolean devMode = false;
+
+    public Sql(String host, String username, String password,boolean devMode) {
         this.host = host;
         this.username = username;
         this.password = password;
         this.sb = new StringBuilder();
         this.params = new ArrayList<>();
+        this.devMode = devMode;
+    }
+
+    public void setDevMode(boolean devMode) {
+        this.devMode = devMode;
     }
 
     public Sql append(String sql, Object... args) {
@@ -25,8 +32,57 @@ public class Sql {
         return this;
     }
 
+    public Sql appendIn(String sql, Object... args){
+        sb.append(sql.replace("?", replaceQuestionMark(args))).append(" ");
+        params.clear(); // 이미 parameter 바인딩 했으므로  list 초기화
+        return this;
+    }
+
+    private String reformat(Object param) {
+        if (param instanceof String) {
+            return "'" + param.toString().replace("'", "''") + "'";
+        }
+        return param.toString();
+    }
+
+    private String replaceWithParams(String sql, Object... params) {
+        String[] strings = sql.split("\\?");
+        StringBuilder sb = new StringBuilder(strings[0]);
+
+        for (int i = 0; i < params.length; i++) {
+            if (i > 0) {
+                sb.append(" , \n");
+            }
+            sb.append(reformat(params[i]));
+
+            if(i + 1 < strings.length){
+               sb.append(strings[i + 1]);
+            }
+        }
+
+        return sb.toString();
+    }
+
+    private String replaceQuestionMark(Object[] args) {
+        StringBuilder sb = new StringBuilder();
+        for(int i=0; i< args.length; i++){
+            sb.append("'").append(args[i].toString()).append("'");
+            if(i < args.length - 1){
+                sb.append(", ");
+            }
+        }
+        return sb.toString();
+    }
+
     public Long insert() {
         String sql = sb.toString().trim();
+
+        if (devMode) {
+            // 개발 모드일 때 쿼리와 파라미터 출력
+            System.out.println("== rawSql ==");
+            String formattedSql = replaceWithParams(sql, params.toArray());
+            System.out.println(formattedSql);
+        }
 
         try {
             Connection connection = DriverManager.getConnection(host, username, password);
@@ -173,5 +229,84 @@ public class Sql {
             throw new RuntimeException(e);
         }
         return null;
+    }
+
+    public Long selectLong() {
+        String sql = sb.toString().trim();
+
+        try {
+            Connection connection = DriverManager.getConnection(host, username, password);
+            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+
+            for (int i = 0; i < params.size(); i++) {
+                preparedStatement.setObject(i + 1, params.get(i));
+            }
+
+            ResultSet rs = preparedStatement.executeQuery();
+
+            if(rs.next()){
+                return rs.getLong(1);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return null;
+    }
+
+
+    public String selectString() {
+        String sql = sb.toString().trim();
+
+        try {
+            Connection connection = DriverManager.getConnection(host, username, password);
+            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+
+            ResultSet rs = preparedStatement.executeQuery();
+
+            if(rs.next()){
+                return rs.getString(1);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return null;
+    }
+
+    public Boolean selectBoolean() {
+        String sql = sb.toString().trim();
+
+        try {
+            Connection connection = DriverManager.getConnection(host, username, password);
+            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+
+            ResultSet rs = preparedStatement.executeQuery();
+
+            if(rs.next()){
+                return rs.getBoolean(1);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return null;
+    }
+
+    public List<Long> selectLongs() {
+        String sql = sb.toString().trim();
+
+        try {
+            Connection connection = DriverManager.getConnection(host, username, password);
+            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+
+            ResultSet rs = preparedStatement.executeQuery();
+            List<Long> foundLongs = new ArrayList<>();
+
+            while (rs.next()){
+                foundLongs.add(rs.getLong(1));
+            }
+
+            return foundLongs;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

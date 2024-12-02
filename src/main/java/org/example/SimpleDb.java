@@ -1,7 +1,12 @@
 package org.example;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.sql.*;
 
+@Getter
+@Setter
 public class SimpleDb {
     private final String host;
 
@@ -11,37 +16,17 @@ public class SimpleDb {
 
     private String dbName;
 
+    private boolean devMode;
+
     public SimpleDb(String host, String username, String password, String dbName) {
         this.host = "jdbc:mysql://" + host +"/" + dbName;
         this.username = username;
         this.password = password;
         this.dbName = dbName;
-    }
-
-    public String getHost() {
-        return host;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public String getDbName() {
-        return dbName;
-    }
-
-    public void setDbName(String dbName) {
-        this.dbName = dbName;
+        this.devMode = false;
     }
 
 
-    public void setDevMode(boolean b) {
-
-    }
 
     public void run(String expr, Object... params) {
         try{
@@ -58,6 +43,6 @@ public class SimpleDb {
     }
 
     public Sql genSql() {
-        return new Sql(host, username, password);
+        return new Sql(host, username, password, devMode);
     }
 }
