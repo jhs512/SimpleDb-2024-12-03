@@ -27,6 +27,14 @@ public class Sql {
         return this;
     }
 
+    public Sql append(String str, int value, int value2, int value3) {
+        query.append(str);
+        params.add(value+"");
+        params.add(value2+"");
+        params.add(value3+"");
+        return this;
+    }
+
     public Sql append(String str, int value, int value2, int value3, int value4) {
         query.append(str);
         params.add(value+"");
@@ -35,7 +43,6 @@ public class Sql {
         params.add(value4+"");
         return this;
     }
-
 
     public long insert() {
         long articleId = -1L;
@@ -70,6 +77,14 @@ public class Sql {
     }
 
     public long update() {
+        return executeUpdateQuery();
+    }
+
+    public long delete() {
+        return executeUpdateQuery();
+    }
+
+    private long executeUpdateQuery() {
         long result;
         try {
             PreparedStatement statement = connection.prepareStatement(query.toString());
@@ -105,4 +120,6 @@ public class Sql {
             return false;
         }
     }
+
+
 }
