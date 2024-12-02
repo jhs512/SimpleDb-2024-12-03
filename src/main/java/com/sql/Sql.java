@@ -6,6 +6,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import com.simpleDb.SimpleDb;
 
@@ -32,5 +33,9 @@ public class Sql {
 
 	public long update() {
 		return simpleDb.runUpdate(sb.toString(), params);
+	}
+
+	public List<Map<String, Object>> selectRows() {
+		return simpleDb.runSelectRows(sb.toString());
 	}
 }
