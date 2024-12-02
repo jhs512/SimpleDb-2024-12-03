@@ -16,8 +16,17 @@ public class Sql {
     }
 
     public Sql append(String query, String param) {
-        this.query += query.replace("?", "\'" + param + "\'");
+        this.query += query.replace("?", "'" + param + "'");
         return this;
+    }
+
+    public void run(String query) {
+        try {
+            Statement stmt = conn.createStatement();
+            stmt.executeUpdate(query);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     public long insert() {

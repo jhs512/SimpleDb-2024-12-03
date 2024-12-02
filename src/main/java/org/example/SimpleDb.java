@@ -23,26 +23,15 @@ public class SimpleDb {
         this.devMode = isDevMode;
     }
 
-    public void run(String sql) {
-        try {
-            Statement stmt = conn.createStatement();
-            stmt.executeUpdate(sql);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+    public void run(String query) {
+        sql.run(query);
     }
 
-    public void run(String sql, String title, String body, boolean isBlind) {
-        try {
-            PreparedStatement pstmt = conn.prepareStatement(sql);
-            pstmt.setString(1, title);
-            pstmt.setString(2, body);
-            pstmt.setBoolean(3, isBlind);
-
-            pstmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+    public void run(String query, String title, String body, boolean isBlind) {
+        String newSql = query.replace("title = ?", "title = " + "'" + title + "'")
+                .replace("`body` = ?", "body = " + "'" + body + "'")
+                .replace("isBlind = ?", "isBlind = " + isBlind);
+        sql.run(newSql);
     }
 
     public Sql genSql() {
