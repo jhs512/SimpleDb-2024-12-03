@@ -66,6 +66,9 @@ public class SimpleDbImpl implements SimpleDb {
 
     @Override
     public SqlImpl genSql() {
+        /*
+        Todo 커넥션 풀 구조를 도입하여 과다한 커넥션 생성 방지 및 커넥션 재활용
+         */
         Connection conn = connect();
         if (isDevMode) {
             SqlImpl sqlImpl = new SqlDevImpl(conn);
