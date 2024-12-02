@@ -2,6 +2,7 @@ package org.example;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class Sql {
@@ -20,17 +21,20 @@ public class Sql {
 
     public Sql append(String query, Object... params) {
         this.query += query + " ";
-        for (int i = 0; i < params.length; i++) {
-            this.params.add(params[i]);
-        }
+        this.params.addAll(Arrays.asList(params));
 
         return this;
     }
 
-    public void run(String query) {
+    public void run(String query, Object...params) {
         try {
-            Statement stmt = conn.createStatement();
-            stmt.executeUpdate(query);
+            PreparedStatement pstmt = conn.prepareStatement(query);
+            this.params.addAll(Arrays.asList(params));
+
+            setParams(pstmt);
+            clearQuery();
+
+            pstmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -39,13 +43,9 @@ public class Sql {
     public long insert() {
         try {
             PreparedStatement pstmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+            setParams(pstmt);
+            clearQuery();
 
-            for (int i = 0; i < params.size(); i++) {
-                pstmt.setObject(i + 1, params.get(i));
-            }
-
-            params.clear();
-            query = "";
             pstmt.executeUpdate();
 
             try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
@@ -62,13 +62,9 @@ public class Sql {
     public long update() {
         try {
             PreparedStatement pstmt = conn.prepareStatement(query);
+            setParams(pstmt);
+            clearQuery();
 
-            for (int i = 0; i < params.size(); i++) {
-                pstmt.setObject(i + 1, params.get(i));
-            }
-
-            params.clear();
-            query = "";
             return pstmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -79,5 +75,16 @@ public class Sql {
     @Override
     public String toString() {
         return query;
+    }
+
+    private void setParams(PreparedStatement pstmt) throws SQLException {
+        for (int i = 0; i < params.size(); i++) {
+            pstmt.setObject(i + 1, params.get(i));
+        }
+    }
+
+    private void clearQuery() {
+        query = "";
+        params.clear();
     }
 }

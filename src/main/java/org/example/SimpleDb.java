@@ -28,10 +28,7 @@ public class SimpleDb {
     }
 
     public void run(String query, String title, String body, boolean isBlind) {
-        String newSql = query.replace("title = ?", "title = " + "'" + title + "'")
-                .replace("`body` = ?", "body = " + "'" + body + "'")
-                .replace("isBlind = ?", "isBlind = " + isBlind);
-        sql.run(newSql);
+        sql.run(query, title, body, isBlind);
     }
 
     public Sql genSql() {
