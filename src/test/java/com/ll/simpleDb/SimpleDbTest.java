@@ -74,8 +74,31 @@ public class SimpleDbTest {
 
     @Test
     @DisplayName("데이터 베이스 연결 테스트 - BeforeAll, BeforeEach 로 확인")
-    public void JdbcConnectTest() throws Exception {
+    public void JdbcConnectTest() {
 
+    }
+
+    @Test
+    @DisplayName("INSERT 테스트")
+    public void insertTest() {
+        Sql sql = simpleDb.genSql();
+        /*
+        == rawSql ==
+        INSERT INTO article
+        SET createdDate = NOW() ,
+        modifiedDate = NOW() ,
+        title = '제목 new' ,
+        body = '내용 new'
+        */
+        sql.append("INSERT INTO article ")
+            .append("SET createdDate = NOW()")
+            .append(", modifiedDate = NOW()")
+            .append(", title = ?", "제목 new")
+            .append(", body = ?", "내용 new");
+
+        long newId = sql.insert(); // AUTO_INCREMENT 에 의해서 생성된 주키 리턴
+
+        assertThat(newId).isGreaterThan(6);
     }
 
 

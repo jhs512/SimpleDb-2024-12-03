@@ -34,7 +34,7 @@ public class SimpleDb {
 
     }
 
-    public void setDevMode(boolean b) {
+    public void setDevMode(boolean state) {
 
     }
 
@@ -82,4 +82,7 @@ public class SimpleDb {
         }
     }
 
+    public Sql genSql() {
+        return new Sql(connection);
+    }
 }
