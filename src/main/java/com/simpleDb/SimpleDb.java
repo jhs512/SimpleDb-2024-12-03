@@ -1,5 +1,6 @@
 package com.simpleDb;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -30,26 +31,7 @@ public class SimpleDb {
 	}
 
 	public void run(String sql, Object... parameters) {
-		Connection connection = null;
-		try {
-			connection = createConnection();
-
-			PreparedStatement preparedStatement = connection.prepareStatement(sql);
-			if (!(parameters == null) || !(parameters.length == 0)) {
-				for (int i = 0; i < parameters.length; i++) {
-					preparedStatement.setObject(i + 1, parameters[i]);
-				}
-			}
-
-			printSql(preparedStatement);
-
-			preparedStatement.execute();
-			preparedStatement.close();
-
-			connection.close();
-		} catch (SQLException e) {
-			throw new RuntimeException(e);
-		}
+		excute(sql, List.of(parameters), PreparedStatement.NO_GENERATED_KEYS);
 	}
 
 	private void printSql(PreparedStatement preparedStatement) {
@@ -73,38 +55,50 @@ public class SimpleDb {
 	}
 
 	public long runInsert(String sql, List<Object> params) {
-		long id = excuteUpdate(sql, params);
+		long id = excute(sql, params, PreparedStatement.RETURN_GENERATED_KEYS);
 
 		return id;
 	}
 
-	public long excuteUpdate(String sql, List<Object> params) {
+	private long excute(String sql, List<Object> params, int generatedKey) {
 		try {
 			Connection connection = createConnection();
-			PreparedStatement preparedStatement = connection.prepareStatement(sql,
-				PreparedStatement.RETURN_GENERATED_KEYS);
 
+			PreparedStatement preparedStatement = connection.prepareStatement(sql, generatedKey);
 
-			if (!params.isEmpty()) {
-				for (int i = 0; i < params.size(); i++) {
-					preparedStatement.setObject(i + 1, params.get(i));
-				}
-			}
+			setParams(params, preparedStatement);
 
 			long result = 0;
 
-			ResultSet resultSet = preparedStatement.getGeneratedKeys();
+			if (generatedKey == PreparedStatement.RETURN_GENERATED_KEYS) {
+				preparedStatement.executeUpdate();
+				ResultSet resultSet = preparedStatement.getGeneratedKeys();
 
-			if (resultSet.next()) {
-				result = resultSet.getLong(1);
+				if (resultSet.next()) {
+					result =  resultSet.getLong(1);
+				}
+			} else {
+				result = preparedStatement.executeUpdate();
 			}
+			printSql(preparedStatement);
 
 			preparedStatement.close();
 			connection.close();
 
 			return result;
+
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	private void setParams(List<Object> params, PreparedStatement preparedStatement) throws SQLException {
+		for (int i = 0; i < params.size(); i++) {
+			preparedStatement.setObject(i + 1, params.get(i));
+		}
+	}
+
+	public long runUpdate(String sql, List<Object> params) {
+		return excute(sql, params, PreparedStatement.NO_GENERATED_KEYS);
 	}
 }
