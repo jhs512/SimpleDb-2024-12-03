@@ -52,7 +52,11 @@ public class SimpleDbImpl implements SimpleDb {
         return conn;
     }
 
-    //커넥션 풀로 커넥션 반납하기
+    /**
+     * @param id
+     * @apiNote 사용했던 커넥션 풀을 반납합니다
+     * genSql 메서드 사용 시 꼭 !!!!!!! 명시적으로 반납해야합니다
+     */
     public synchronized void returnConn(UUID id) {
         Connection conn = connectionMap.get(id);
         connectionPool.add(conn);
