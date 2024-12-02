@@ -22,13 +22,13 @@ public class SimpleDb {
             connection = DriverManager.getConnection(url, user, password);
 
             if(connection != null) {
-                System.err.println("Connected to database");
+                System.out.println("Connected to database");
             }
         } catch (ClassNotFoundException e) {
-            System.err.println("JDBC Driver not found");
+            System.out.println("JDBC Driver not found");
             throw new RuntimeException(e);
         } catch (SQLException e) {
-            System.err.println("Error connecting to database");
+            System.out.println("Error connecting to database");
             throw new RuntimeException(e);
         }
 
@@ -43,7 +43,7 @@ public class SimpleDb {
             Statement statement = connection.createStatement();
             statement.executeUpdate(query);
 
-            System.out.println("run success");
+            System.out.println("Query executed successfully");
             statement.close();
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -58,8 +58,13 @@ public class SimpleDb {
             statement.setString(2, body);
             statement.setBoolean(3, isBlind);
 
-            statement.executeUpdate();
-            System.out.println("Create Article success");
+            int result = statement.executeUpdate();
+            if (result > 0) {
+                System.out.println("Create Article success");
+            } else {
+                System.out.println("Create Article failed");
+            }
+
             statement.close();
         } catch (SQLException e) {
             throw new RuntimeException(e);
