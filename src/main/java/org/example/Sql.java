@@ -20,10 +20,6 @@ public class Sql {
         this.devMode = devMode;
     }
 
-    public void setDevMode(boolean devMode) {
-        this.devMode = devMode;
-    }
-
     public Sql append(String sql, Object... args) {
         sb.append(sql).append(" ");
         params.addAll(Arrays.asList(args));
