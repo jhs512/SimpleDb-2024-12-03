@@ -48,25 +48,7 @@ public class Sql {
             sqlContent.add(content+"");
         return this;
     }
-    long insert(){
-        long id = -1;
-        try {
-            PreparedStatement stmt = con.prepareStatement(sql.toString());
-            int n = 1 ;
-            for(String i : sqlContent){
-                stmt.setString(n++, i);
-            }
-            id = stmt.executeUpdate();
-            stmt.close();
-            con.close();
-            init();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-        return id;
-    }
-
-    long update(){
+    long runQeury(){
         long id = -1;
         try {
             PreparedStatement stmt = con.prepareStatement(sql.toString());
@@ -79,12 +61,23 @@ public class Sql {
             }
             id = stmt.executeUpdate();
             stmt.close();
-            con.close();
-            init();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
         return id;
     }
+    long insert(){
+        return runQeury();
+    }
+
+    long update(){
+
+        return runQeury();
+    }
+
+    long delete(){
+        return runQeury();
+    }
+
 
 }
