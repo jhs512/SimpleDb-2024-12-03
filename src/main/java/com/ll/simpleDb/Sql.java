@@ -152,43 +152,30 @@ public class Sql {
 
 
     public LocalDateTime selectDatetime() {
-        LocalDateTime result = null;
-        try {
-            PreparedStatement statement = connection.prepareStatement(query.toString());
-            ResultSet resultSet = statement.executeQuery();
-            if(resultSet.next()) {
-                result = LocalDateTime.parse(resultSet.getString(1).replace(" ", "T"));
-            }
-            statement.close();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-
-        return result;
+        return selectValue("now()", LocalDateTime.class);
     }
 
     public Long selectLong() {
-        long result = 0L;
-        try {
-            PreparedStatement statement = connection.prepareStatement(query.toString());
-            ResultSet resultSet = statement.executeQuery();
-            if (resultSet.next()) {
-                result = resultSet.getLong("id");
-            }
-            statement.close();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-        return result;
+        return selectValue("id", Long.class);
     }
 
     public String selectString() {
-        String result = "";
+        return selectValue("title", String.class);
+    }
+
+    private <T> T selectValue(String columnName, Class<T> type) {
+        T result = null;
         try {
             PreparedStatement statement = connection.prepareStatement(query.toString());
             ResultSet resultSet = statement.executeQuery();
             if (resultSet.next()) {
-                result = resultSet.getString("title");
+                if(type == Long.class) {
+                    result = type.cast(resultSet.getLong(columnName));
+                } else if(type == String.class) {
+                    result = type.cast(resultSet.getString(columnName));
+                } else if(type == LocalDateTime.class) {
+                    result = type.cast(resultSet.getTimestamp(columnName).toLocalDateTime());
+                }
             }
             statement.close();
         } catch (SQLException e) {
