@@ -5,8 +5,14 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import javax.sql.DataSource;
 
@@ -75,7 +81,7 @@ public class SimpleDb {
 				ResultSet resultSet = preparedStatement.getGeneratedKeys();
 
 				if (resultSet.next()) {
-					result =  resultSet.getLong(1);
+					result = resultSet.getLong(1);
 				}
 			} else {
 				result = preparedStatement.executeUpdate();
@@ -100,5 +106,31 @@ public class SimpleDb {
 
 	public long runUpdate(String sql, List<Object> params) {
 		return excute(sql, params, PreparedStatement.NO_GENERATED_KEYS);
+	}
+
+	public List<Map<String, Object>> runSelectRows(String sql) {
+		try {
+			List<Map<String, Object>> mapList = new LinkedList<>();
+
+			Connection connection = createConnection();
+			PreparedStatement preparedStatement = connection.prepareStatement(sql);
+			ResultSet resultSet = preparedStatement.executeQuery(sql);
+
+			ResultSetMetaData metaData = resultSet.getMetaData();
+
+			while (resultSet.next()) {
+				Map<String, Object> map = new HashMap<>();
+
+				for (int i = 0; i < metaData.getColumnCount(); i++) {
+					map.put(metaData.getColumnLabel(i + 1), resultSet.getObject(i + 1));
+				}
+
+				mapList.add(map);
+			}
+
+			return mapList;
+		} catch (SQLException e) {
+			throw new RuntimeException(e);
+		}
 	}
 }
