@@ -1,9 +1,12 @@
 package org.example;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Sql {
     private String query = "";
+    private List<Object> params = new ArrayList<>();
     private Connection conn;
 
     public Sql(Connection conn) {
@@ -15,8 +18,12 @@ public class Sql {
         return this;
     }
 
-    public Sql append(String query, String param) {
-        this.query += query.replace("?", "'" + param + "'");
+    public Sql append(String query, Object... params) {
+        this.query += query + " ";
+        for (int i = 0; i < params.length; i++) {
+            this.params.add(params[i]);
+        }
+
         return this;
     }
 
@@ -39,6 +46,22 @@ public class Sql {
                     return generatedKeys.getLong(1);
                 }
             }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
+
+    public long update() {
+        try {
+            PreparedStatement pstmt = conn.prepareStatement(query);
+
+            for (int i = 0; i < params.size(); i++) {
+                pstmt.setObject(i + 1, params.get(i));
+            }
+
+            params.clear();
+            return pstmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
         }
