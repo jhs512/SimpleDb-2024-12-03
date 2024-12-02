@@ -9,8 +9,7 @@ import java.util.List;
 
 public class Sql {
     StringBuilder sql = new StringBuilder();
-    List<String> sqlContent = new ArrayList<>() {
-    };
+    List<String> sqlContent = new ArrayList<>() {};
     String url;
     String id;
     String pw;
@@ -35,24 +34,53 @@ public class Sql {
         }
     }
     Sql append(String query){
-        sql.append(query);
+        sql.append(query).append(" ");
         return this;
     }
     Sql append(String query,String content){
-        sql.append(query);
+        sql.append(query).append(" ");
         sqlContent.add(content);
+        return this;
+    }
+    Sql append(String query,int...contents){
+        sql.append(query).append(" ");
+        for(int content : contents)
+            sqlContent.add(content+"");
         return this;
     }
     long insert(){
         long id = -1;
         try {
-            System.out.println(sql.toString());
             PreparedStatement stmt = con.prepareStatement(sql.toString());
             int n = 1 ;
             for(String i : sqlContent){
                 stmt.setString(n++, i);
             }
             id = stmt.executeUpdate();
+            stmt.close();
+            con.close();
+            init();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return id;
+    }
+
+    long update(){
+        long id = -1;
+        try {
+            PreparedStatement stmt = con.prepareStatement(sql.toString());
+            int n = 1 ;
+            for(String i : sqlContent){
+                if(i.chars().allMatch(Character::isDigit))
+                    stmt.setInt(n++, Integer.parseInt(i));
+                else
+                    stmt.setString(n++,i);
+            }
+            id = stmt.executeUpdate();
+            stmt.close();
+            con.close();
+            init();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
