@@ -38,4 +38,8 @@ public class Sql {
 	public List<Map<String, Object>> selectRows() {
 		return simpleDb.runSelectRows(sb.toString());
 	}
+
+	public Map<String, Object> selectRow() {
+		return simpleDb.runSelectRow(sb.toString());
+	}
 }
