@@ -25,22 +25,26 @@ public class Sql {
         return this;
     }
 
-    public Long insert(){
+    public Long insert() {
         String sql = sb.toString().trim();
 
         try {
             Connection connection = DriverManager.getConnection(host, username, password);
             PreparedStatement preparedStatement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 
-            for(int i=0; i<params.size(); i++){
-                preparedStatement.setObject(i+1, params.get(i));
+            for (int i = 0; i < params.size(); i++) {
+                preparedStatement.setObject(i + 1, params.get(i));
             }
 
-            preparedStatement.executeUpdate();
+            int row = preparedStatement.executeUpdate();
 
-            try (ResultSet keys = preparedStatement.getGeneratedKeys()) {
-                if(keys.next()){
-                    return keys.getLong(1);
+            if (row == 0) {
+                throw new SQLException("생성을 수행하지않았습니다.");
+            }
+
+            try (ResultSet rs = preparedStatement.getGeneratedKeys()) {
+                if (rs.next()) {
+                    return rs.getLong(1);
                 }
             }
 
@@ -48,21 +52,21 @@ public class Sql {
             throw new RuntimeException(e);
         }
 
-        throw new RuntimeException("key 생성에 실패 하였습니다.");
+        throw new RuntimeException("생성에 실패하였습니다.");
     }
 
-    public Long update() {
+    public long update() {
         String sql = sb.toString().trim();
 
         try {
             Connection connection = DriverManager.getConnection(host, username, password);
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
-            for(int i=0; i<params.size(); i++){
-                preparedStatement.setObject(i+1, params.get(i));
+            for (int i = 0; i < params.size(); i++) {
+                preparedStatement.setObject(i + 1, params.get(i));
             }
 
-            return (long) preparedStatement.executeUpdate();
+            return preparedStatement.executeUpdate();
 
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -77,11 +81,11 @@ public class Sql {
             Connection connection = DriverManager.getConnection(host, username, password);
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
-            for(int i=0; i<params.size(); i++){
-                preparedStatement.setObject(i+1, params.get(i));
+            for (int i = 0; i < params.size(); i++) {
+                preparedStatement.setObject(i + 1, params.get(i));
             }
 
-            return (long) preparedStatement.executeUpdate();
+            return preparedStatement.executeUpdate();
 
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -95,22 +99,18 @@ public class Sql {
             Connection connection = DriverManager.getConnection(host, username, password);
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
-            for(int i=0; i<params.size(); i++){
-                preparedStatement.setObject(i+1, params.get(i));
-            }
-
-            ResultSet resultSet = preparedStatement.executeQuery();
+            ResultSet rs = preparedStatement.executeQuery();
             List<Map<String, Object>> rows = new ArrayList<>();
-            ResultSetMetaData metaData = resultSet.getMetaData();
+            ResultSetMetaData metaData = rs.getMetaData();
             int count = metaData.getColumnCount();
 
-            while (resultSet.next()){
+            while (rs.next()) {
                 Map<String, Object> row = new HashMap<>();
-                for(int i=1; i<=count; i++){
+                for (int i = 1; i <= count; i++) {
                     String columnName = metaData.getColumnName(i);
-                    Object value = resultSet.getObject(i);
+                    Object value = rs.getObject(i);
 
-                    if(value instanceof Timestamp) {
+                    if (value instanceof Timestamp) {
                         value = ((Timestamp) value).toLocalDateTime();
                     }
 
@@ -122,5 +122,56 @@ public class Sql {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public Map<String, Object> selectRow() {
+        String sql = sb.toString().trim();
+
+        try {
+            Connection connection = DriverManager.getConnection(host, username, password);
+            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+
+            ResultSet rs = preparedStatement.executeQuery();
+            if (rs.next()) {
+                Map<String, Object> row = new HashMap<>();
+                ResultSetMetaData metaData = rs.getMetaData();
+                int count = metaData.getColumnCount();
+
+                for (int i = 1; i <= count; i++) {
+                    String columName = metaData.getColumnName(i);
+                    Object value = rs.getObject(i);
+
+                    if (value instanceof Timestamp) {
+                        value = ((Timestamp) value).toLocalDateTime();
+                    }
+
+                    row.put(columName, value);
+                }
+                return row;
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return null;
+    }
+
+    public LocalDateTime selectDatetime() {
+        String sql = sb.toString().trim();
+
+        try {
+            Connection connection = DriverManager.getConnection(host, username, password);
+            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+
+            ResultSet rs = preparedStatement.executeQuery();
+
+            if(rs.next()){
+                return rs.getTimestamp(1).toLocalDateTime();
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return null;
     }
 }

@@ -4,9 +4,13 @@ import java.sql.*;
 
 public class SimpleDb {
     private final String host;
+
     private final String username;
+
     private final String password;
+
     private String dbName;
+
     public SimpleDb(String host, String username, String password, String dbName) {
         this.host = "jdbc:mysql://" + host +"/" + dbName;
         this.username = username;
