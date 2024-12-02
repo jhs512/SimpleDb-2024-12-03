@@ -1,22 +1,20 @@
 package org.example;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.*;
 
 public class Sql {
-    private final String host;
-    private final String username;
-    private final String password;
+    private Connection connection;
     private StringBuilder sb;
     private List<Object> params;
 
     private boolean devMode = false;
 
-    public Sql(String host, String username, String password,boolean devMode) {
-        this.host = host;
-        this.username = username;
-        this.password = password;
+    public Sql(Connection connection, boolean devMode) {
+        this.connection = connection;
         this.sb = new StringBuilder();
         this.params = new ArrayList<>();
         this.devMode = devMode;
@@ -85,7 +83,6 @@ public class Sql {
         }
 
         try {
-            Connection connection = DriverManager.getConnection(host, username, password);
             PreparedStatement preparedStatement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 
             for (int i = 0; i < params.size(); i++) {
@@ -115,7 +112,6 @@ public class Sql {
         String sql = sb.toString().trim();
 
         try {
-            Connection connection = DriverManager.getConnection(host, username, password);
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
             for (int i = 0; i < params.size(); i++) {
@@ -134,7 +130,6 @@ public class Sql {
         String sql = sb.toString().trim();
 
         try {
-            Connection connection = DriverManager.getConnection(host, username, password);
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
             for (int i = 0; i < params.size(); i++) {
@@ -152,7 +147,6 @@ public class Sql {
         String sql = sb.toString().trim();
 
         try {
-            Connection connection = DriverManager.getConnection(host, username, password);
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
             ResultSet rs = preparedStatement.executeQuery();
@@ -180,11 +174,45 @@ public class Sql {
         }
     }
 
+    public <T> List<T> selectRows(Class<T> clazz) {
+        String sql = sb.toString().trim();
+
+        try {
+            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+
+            ResultSet rs = preparedStatement.executeQuery();
+            ResultSetMetaData metaData = rs.getMetaData();
+            int count = metaData.getColumnCount();
+
+            List<T> result = new ArrayList<>();
+
+            while (rs.next()) {
+                T t = clazz.getDeclaredConstructor().newInstance();
+                for (int i = 1; i <= count; i++) {
+                    String columnName = metaData.getColumnName(i);
+                    Object value = rs.getObject(i);
+
+                    if (value instanceof Timestamp) {
+                        value = ((Timestamp) value).toLocalDateTime();
+                    }
+
+                    Field field = clazz.getDeclaredField(columnName);
+                    field.setAccessible(true);
+                    field.set(t, value);
+                }
+                result.add(t);
+            }
+            return result;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
     public Map<String, Object> selectRow() {
         String sql = sb.toString().trim();
 
         try {
-            Connection connection = DriverManager.getConnection(host, username, password);
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
             ResultSet rs = preparedStatement.executeQuery();
@@ -212,11 +240,43 @@ public class Sql {
         return null;
     }
 
+    public <T> T selectRow(Class<T> clazz) {
+        String sql = sb.toString().trim();
+
+        try {
+            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+
+            ResultSet rs = preparedStatement.executeQuery();
+            ResultSetMetaData metaData = rs.getMetaData();
+            int count = metaData.getColumnCount();
+
+            if (rs.next()) {
+                T t = clazz.getDeclaredConstructor().newInstance();
+
+                for (int i = 1; i <= count; i++) {
+                    String columName = metaData.getColumnName(i);
+                    Object value = rs.getObject(i);
+
+                    if (value instanceof Timestamp) {
+                        value = ((Timestamp) value).toLocalDateTime();
+                    }
+
+                    Field field = clazz.getDeclaredField(columName);
+                    field.setAccessible(true);
+                    field.set(t, value);
+                }
+                return t;
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return null;
+    }
+
     public LocalDateTime selectDatetime() {
         String sql = sb.toString().trim();
 
         try {
-            Connection connection = DriverManager.getConnection(host, username, password);
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
             ResultSet rs = preparedStatement.executeQuery();
@@ -235,7 +295,6 @@ public class Sql {
         String sql = sb.toString().trim();
 
         try {
-            Connection connection = DriverManager.getConnection(host, username, password);
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
             for (int i = 0; i < params.size(); i++) {
@@ -258,7 +317,6 @@ public class Sql {
         String sql = sb.toString().trim();
 
         try {
-            Connection connection = DriverManager.getConnection(host, username, password);
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
             ResultSet rs = preparedStatement.executeQuery();
@@ -276,7 +334,6 @@ public class Sql {
         String sql = sb.toString().trim();
 
         try {
-            Connection connection = DriverManager.getConnection(host, username, password);
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
             ResultSet rs = preparedStatement.executeQuery();
@@ -294,7 +351,6 @@ public class Sql {
         String sql = sb.toString().trim();
 
         try {
-            Connection connection = DriverManager.getConnection(host, username, password);
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
             ResultSet rs = preparedStatement.executeQuery();

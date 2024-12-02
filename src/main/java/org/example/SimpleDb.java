@@ -18,23 +18,32 @@ public class SimpleDb {
 
     private boolean devMode;
 
+    private ThreadLocal<Connection> connectionThreadLocal = ThreadLocal.withInitial(() -> null);
+
     public SimpleDb(String host, String username, String password, String dbName) {
-        this.host = "jdbc:mysql://" + host +"/" + dbName;
+        this.host = "jdbc:mysql://" + host + "/" + dbName;
         this.username = username;
         this.password = password;
         this.dbName = dbName;
         this.devMode = false;
     }
 
-
+    private Connection getConnection() throws SQLException {
+        // 현재 스레드의 connection을 반환
+        Connection connection = connectionThreadLocal.get();
+        if (connection == null || connection.isClosed()) {
+            connection = DriverManager.getConnection(host, username, password);
+            connectionThreadLocal.set(connection);
+        }
+        return connection;
+    }
 
     public void run(String expr, Object... params) {
-        try{
-            Connection connection = DriverManager.getConnection(host, username, password);
+        try {
+            Connection connection = getConnection();
             PreparedStatement statement = connection.prepareStatement(expr);
-
-            for(int i=0; i<params.length; i++){
-                statement.setObject(i+1, params[i]);
+            for (int i = 0; i < params.length; i++) {
+                statement.setObject(i + 1, params[i]);
             }
             statement.executeUpdate();
         } catch (SQLException e) {
@@ -43,6 +52,55 @@ public class SimpleDb {
     }
 
     public Sql genSql() {
-        return new Sql(host, username, password, devMode);
+        try {
+            Connection connection = getConnection();
+            return new Sql(connection, devMode);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    public void closeConnection() {
+        try {
+            Connection connection = getConnection();
+            if (connection != null) {
+                connection.close();
+                connectionThreadLocal.remove();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void startTransaction() {
+        try {
+            Connection connection = getConnection();
+            connection.setAutoCommit(false);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void rollback() {
+        try {
+            Connection connection = getConnection();
+            if (connection != null && !connection.getAutoCommit()) {
+                connection.rollback();
+                connection.setAutoCommit(true);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void commit() {
+        try {
+            Connection connection = getConnection();
+            if (connection != null && !connection.getAutoCommit()) {
+                connection.commit();
+                connection.setAutoCommit(true);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
