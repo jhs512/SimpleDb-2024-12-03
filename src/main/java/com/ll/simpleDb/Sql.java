@@ -3,8 +3,12 @@ package com.ll.simpleDb;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.IntStream;
 
 public class Sql {
@@ -122,4 +126,25 @@ public class Sql {
     }
 
 
+    public List<Map<String, Object>> selectRows() {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        try {
+            PreparedStatement statement = connection.prepareStatement(query.toString());
+            ResultSet resultSet = statement.executeQuery();
+
+            ResultSetMetaData metaData = resultSet.getMetaData();
+            int columnCount = metaData.getColumnCount();
+            while (resultSet.next()) {
+                Map<String, Object> row = new HashMap<>();
+
+                for (int i = 1; i <= columnCount; i++) {
+                    row.put(metaData.getColumnName(i), resultSet.getObject(i));
+                }
+                rows.add(row);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return rows;
+    }
 }
