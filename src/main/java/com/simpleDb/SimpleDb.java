@@ -3,7 +3,9 @@ package com.simpleDb;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 
 import javax.sql.DataSource;
 
@@ -43,6 +45,8 @@ public class SimpleDb {
 
 			preparedStatement.execute();
 			preparedStatement.close();
+
+			connection.close();
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
 		}
@@ -65,6 +69,42 @@ public class SimpleDb {
 
 	public Sql genSql() {
 
-		return new Sql();
+		return new Sql(this);
+	}
+
+	public long runInsert(String sql, List<Object> params) {
+		long id = excuteUpdate(sql, params);
+
+		return id;
+	}
+
+	public long excuteUpdate(String sql, List<Object> params) {
+		try {
+			Connection connection = createConnection();
+			PreparedStatement preparedStatement = connection.prepareStatement(sql,
+				PreparedStatement.RETURN_GENERATED_KEYS);
+
+
+			if (!params.isEmpty()) {
+				for (int i = 0; i < params.size(); i++) {
+					preparedStatement.setObject(i + 1, params.get(i));
+				}
+			}
+
+			long result = 0;
+
+			ResultSet resultSet = preparedStatement.getGeneratedKeys();
+
+			if (resultSet.next()) {
+				result = resultSet.getLong(1);
+			}
+
+			preparedStatement.close();
+			connection.close();
+
+			return result;
+		} catch (SQLException e) {
+			throw new RuntimeException(e);
+		}
 	}
 }
