@@ -7,6 +7,8 @@ import java.sql.SQLException;
 
 import javax.sql.DataSource;
 
+import com.sql.Sql;
+
 public class SimpleDb {
 	private static final String URL_PREFIX = "jdbc:mysql://";
 	private static final String DATABASE_PORT = ":3306/";
@@ -59,5 +61,10 @@ public class SimpleDb {
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	public Sql genSql() {
+
+		return new Sql();
 	}
 }
