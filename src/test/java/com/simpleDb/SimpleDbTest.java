@@ -4,15 +4,18 @@ import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 @TestMethodOrder(MethodOrderer.MethodName.class)
 public class SimpleDbTest {
+	private static SimpleDb simpleDb;
 
 	@BeforeAll
 	public static void beforeAll() {
-		simpleDb = new SimpleDb("localhost", "root", "lldj123414", "simpleDb__test");
+		simpleDb = new SimpleDb("localhost", "root", "test1234", "simpleDb__test");
 		simpleDb.setDevMode(true);
 
 		createArticleTable();
@@ -56,5 +59,9 @@ public class SimpleDbTest {
 				""", title, body, isBlind);
 		});
 	}
+
+	private void truncateArticleTable() {
+        simpleDb.run("TRUNCATE article");
+    }
 
 }
