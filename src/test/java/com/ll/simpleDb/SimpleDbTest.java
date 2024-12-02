@@ -24,7 +24,7 @@ public class SimpleDbTest {
 
     @BeforeAll
     public static void beforeAll() {
-        simpleDb = new SimpleDb("localhost", "root", "lldj123414", "simpleDb__test");
+        simpleDb = new SimpleDb("localhost", "root", "ghdrk123", "simpleDb_test");
         simpleDb.setDevMode(true);
 
         createArticleTable();
@@ -85,7 +85,7 @@ public class SimpleDbTest {
         title = '제목 ne
         body = '내용 new'
         */
-        sql.append("INSERT INTO article")
+        sql.append("INSERT INTO article ")
                 .append("SET createdDate = NOW()")
                 .append(", modifiedDate = NOW()")
                 .append(", title = ?", "제목 new")
