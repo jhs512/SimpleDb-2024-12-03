@@ -19,6 +19,7 @@ public class SimpleDbImpl implements SimpleDb {
     private final Connection conn;
     private Map<UUID, Connection> connectionMap = new ConcurrentHashMap<>();
     private Boolean isDevMode = false;
+    // 커넥션 풀
     private static Queue<Connection> connectionPool = new ConcurrentLinkedQueue<>();
 
     SimpleDbImpl(String url, String user, String password, String dbName, int maxPool) {
@@ -113,6 +114,7 @@ public class SimpleDbImpl implements SimpleDb {
     public SqlImpl genSql() {
         /*
         Todo 커넥션 풀 구조를 도입하여 과다한 커넥션 생성 방지 및 커넥션 재활용
+        커넥션 풀 개발 완료하였습니다
          */
         Connection conn = getConn();
         if (isDevMode) {
