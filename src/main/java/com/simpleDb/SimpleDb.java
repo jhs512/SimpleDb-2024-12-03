@@ -112,9 +112,7 @@ public class SimpleDb {
 		try {
 			List<Map<String, Object>> mapList = new LinkedList<>();
 
-			Connection connection = createConnection();
-			PreparedStatement preparedStatement = connection.prepareStatement(sql);
-			ResultSet resultSet = preparedStatement.executeQuery(sql);
+			ResultSet resultSet = excuteSelect(sql);
 
 			ResultSetMetaData metaData = resultSet.getMetaData();
 
@@ -132,5 +130,33 @@ public class SimpleDb {
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	public Map<String, Object> runSelectRow(String sql) {
+		try {
+			ResultSet resultSet = excuteSelect(sql);
+
+			ResultSetMetaData metaData = resultSet.getMetaData();
+
+			Map<String, Object> map = new HashMap<>();
+
+			while (resultSet.next()) {
+				for (int i = 0; i < metaData.getColumnCount(); i++) {
+					map.put(metaData.getColumnLabel(i + 1), resultSet.getObject(i + 1));
+				}
+			}
+
+			return map;
+		} catch (SQLException e) {
+			throw new RuntimeException(e);
+		}
+
+	}
+
+	private ResultSet excuteSelect(String sql) throws SQLException {
+		Connection connection = createConnection();
+		PreparedStatement preparedStatement = connection.prepareStatement(sql);
+		ResultSet resultSet = preparedStatement.executeQuery(sql);
+		return resultSet;
 	}
 }
