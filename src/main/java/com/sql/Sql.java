@@ -27,8 +27,10 @@ public class Sql {
 
 	public long insert() {
 		long id = simpleDb.runInsert(sb.toString(), params);
-		System.out.println("id = " + id);
-
 		return id;
+	}
+
+	public long update() {
+		return simpleDb.runUpdate(sb.toString(), params);
 	}
 }
