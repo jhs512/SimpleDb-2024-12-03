@@ -5,6 +5,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -138,6 +140,7 @@ public class Sql {
 
                 for (int i = 1; i <= columnCount; i++) {
                     row.put(metaData.getColumnName(i), resultSet.getObject(i));
+                    System.out.println(resultSet.getObject(i));
                 }
                 rows.add(row);
             }
@@ -147,4 +150,22 @@ public class Sql {
         }
         return rows;
     }
+
+
+    public LocalDateTime selectDatetime() {
+        LocalDateTime result = null;
+        try {
+            PreparedStatement statement = connection.prepareStatement(query.toString());
+            ResultSet resultSet = statement.executeQuery();
+            if(resultSet.next()) {
+                result = LocalDateTime.parse(resultSet.getString(1).replace(" ", "T"));
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+        return result;
+    }
+
 }
