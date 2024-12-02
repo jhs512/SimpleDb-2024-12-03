@@ -9,7 +9,7 @@ import java.util.stream.IntStream;
 
 public class Sql {
 
-    public Connection connection = null;
+    public Connection connection;
     public Sql(Connection connection) {
         this.connection = connection;
     }
@@ -26,6 +26,16 @@ public class Sql {
         params.add(value);
         return this;
     }
+
+    public Sql append(String str, int value, int value2, int value3, int value4) {
+        query.append(str);
+        params.add(value+"");
+        params.add(value2+"");
+        params.add(value3+"");
+        params.add(value4+"");
+        return this;
+    }
+
 
     public long insert() {
         long articleId = -1L;
@@ -57,5 +67,42 @@ public class Sql {
         }
 
         return articleId;
+    }
+
+    public long update() {
+        long result;
+        try {
+            PreparedStatement statement = connection.prepareStatement(query.toString());
+
+            IntStream.range(0, params.size())
+                .forEach(i -> {
+                    try {
+                        if (isNumber(params.get(i))) {
+                            statement.setInt(i + 1, Integer.parseInt(params.get(i)));
+                        } else {
+                            statement.setString(i + 1, params.get(i));
+                        }
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+
+            result = statement.executeUpdate();
+
+            statement.close();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+        return result;
+    }
+
+    private boolean isNumber(String target) {
+        try {
+            Integer.parseInt(target);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 }
