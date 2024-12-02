@@ -160,7 +160,7 @@ public class Sql {
             if(resultSet.next()) {
                 result = LocalDateTime.parse(resultSet.getString(1).replace(" ", "T"));
             }
-
+            statement.close();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
