@@ -1,13 +1,18 @@
 package com.simpleDb;
 
+import static org.assertj.core.api.Assertions.*;
+
 import java.util.stream.IntStream;
 
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+
+import com.sql.Sql;
 
 @TestMethodOrder(MethodOrderer.MethodName.class)
 public class SimpleDbTest {
