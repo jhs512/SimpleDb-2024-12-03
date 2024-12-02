@@ -107,7 +107,6 @@ public class Sql {
                 });
 
             result = statement.executeUpdate();
-
             statement.close();
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -142,6 +141,7 @@ public class Sql {
                 }
                 rows.add(row);
             }
+            statement.close();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
