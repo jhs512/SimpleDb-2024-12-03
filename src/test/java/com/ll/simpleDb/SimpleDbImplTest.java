@@ -9,6 +9,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -435,12 +436,10 @@ public class SimpleDbImplTest {
 
         // 각 쓰레드에서 실행될 작업을 정의합니다.
         Runnable task = () -> {
+            // SimpleDB에서 SQL 객체를 생성합니다.
             SqlImpl sqlImpl = simpleDbImpl.genSql();
-            int sqlId = sqlImpl.id;
 
             try {
-                // SimpleDB에서 SQL 객체를 생성합니다.
-
                 // SQL 쿼리를 작성합니다.
                 sqlImpl.append("SELECT * FROM article WHERE id = 1");
 
@@ -461,8 +460,8 @@ public class SimpleDbImplTest {
                     successCounter.incrementAndGet();
                 }
             } finally {
-                // 커넥션 종료
-                simpleDbImpl.closeConnection(sqlId);
+                // 커넥션 종료 (커넥션 반납)
+                simpleDbImpl.returnConn(sqlImpl.id);
                 // 작업이 완료되면 래치 카운터를 감소시킵니다.
                 latch.countDown();
             }

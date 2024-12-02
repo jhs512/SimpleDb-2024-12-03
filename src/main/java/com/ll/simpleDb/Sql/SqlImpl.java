@@ -1,6 +1,7 @@
 package com.ll.simpleDb.Sql;
 
 import com.ll.Article.Article;
+import com.ll.simpleDb.SimpleDbImpl;
 
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -12,7 +13,7 @@ public class SqlImpl implements Sql {
     private Connection conn;
     private PreparedStatement pstmt;
     private List<Object> SqlVariables = new ArrayList<>();
-    public final Integer id = new Random().nextInt(0,9999);
+    public final UUID id = UUID.randomUUID();
 
     public SqlImpl(Connection connection) {
         this.sql = new StringBuilder();

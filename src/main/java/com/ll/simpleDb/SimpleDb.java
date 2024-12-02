@@ -2,6 +2,8 @@ package com.ll.simpleDb;
 
 import com.ll.simpleDb.Sql.SqlImpl;
 
+import java.util.UUID;
+
 /**
  * @apiNote 데이터베이스의 연결, 트랜잭션 관리를 관리합니다
  */
@@ -32,18 +34,24 @@ public interface SimpleDb {
     /**
      * @apiNote SqlImpl id를 인자로 받아 커넥션을 종료합니다
      */
-    void closeConnection(int id);
+    void closeConnection(UUID id);
+
+    /**
+     * @apiNote 커넥션 풀에 있는 모든 커넥션 풀을 종료합니다
+     */
+
+    void closeConnectionAll();
     /**
      * @apiNote 트랜잭션을 시작합니다 내부적으로 JDBC의 오토 커밋을 false로 설정합니다
      */
-    void startTransaction(int id);
+    void startTransaction(UUID id);
     /**
      * @apiNote 데이터베이스를 롤백합니다 내부적으로 rollback() 함수를 이용합니다
      */
-    void rollback(int id);
+    void rollback(UUID id);
     /**
      * @apiNote 데이터베이스를 커밋합니다
      */
-    void commit(int id);
+    void commit(UUID id);
 
 }

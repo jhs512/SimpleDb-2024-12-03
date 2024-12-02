@@ -5,7 +5,11 @@ import com.ll.simpleDb.Sql.SqlDevImpl;
 
 import java.sql.*;
 import java.util.Map;
+import java.util.Queue;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.stream.IntStream;
 
 public class SimpleDbImpl implements SimpleDb {
     private final String url;
@@ -13,15 +17,47 @@ public class SimpleDbImpl implements SimpleDb {
     private final String password;
     private final String dbName;
     private final Connection conn;
-    private Map<Integer, Connection> connectionMap = new ConcurrentHashMap<>();
+    private Map<UUID, Connection> connectionMap = new ConcurrentHashMap<>();
     private Boolean isDevMode = false;
+    private static Queue<Connection> connectionPool = new ConcurrentLinkedQueue<>();
 
-    SimpleDbImpl(String url, String user, String password, String dbName) {
+    SimpleDbImpl(String url, String user, String password, String dbName, int maxPool) {
         this.url = url;
         this.user = user;
         this.password = password;
         this.dbName = dbName;
         this.conn = connect();
+
+        //커넥션 풀에 커넥션 생성
+        IntStream.range(0,maxPool).forEach(
+            it -> connectionPool.add(connect())
+        );
+    }
+
+    SimpleDbImpl(String url, String user, String password, String dbName) {
+        this(url, user, password, dbName, 8);
+    }
+
+    //커넥션 풀에서 커넥션 가져오기
+    private synchronized Connection getConn() {
+        Connection conn = connectionPool.poll();
+        while (conn == null) {
+            try {
+                wait();
+                conn = connectionPool.poll();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return conn;
+    }
+
+    //커넥션 풀로 커넥션 반납하기
+    public synchronized void returnConn(UUID id) {
+        Connection conn = connectionMap.get(id);
+        connectionPool.add(conn);
+        connectionMap.remove(id);
+        notifyAll();
     }
 
     //TODO : 예외처리 리팩토링
@@ -46,6 +82,11 @@ public class SimpleDbImpl implements SimpleDb {
         return conn1;
     }
 
+    /**
+     * @param isDevMode
+     * @apiNote 개발자 모드를 사용 시 쿼리 실행 전 터미널에 쿼리를 출력하는 객체
+     * SqlDevImpl를 SqlImpl 대신 반환합니다
+     */
     @Override
     public void setDevMode(Boolean isDevMode) {
         this.isDevMode = isDevMode;
@@ -59,9 +100,9 @@ public class SimpleDbImpl implements SimpleDb {
     public long run(String query, Object...params) {
         SqlImpl sqlImpl = genSql();
         sqlImpl.append(query, params);
-        long affected = sqlImpl.update();
-        closeConnection(sqlImpl.id);
-        return affected;
+        long result = sqlImpl.update();
+        returnConn(sqlImpl.id);
+        return result;
     }
 
     @Override
@@ -69,7 +110,7 @@ public class SimpleDbImpl implements SimpleDb {
         /*
         Todo 커넥션 풀 구조를 도입하여 과다한 커넥션 생성 방지 및 커넥션 재활용
          */
-        Connection conn = connect();
+        Connection conn = getConn();
         if (isDevMode) {
             SqlImpl sqlImpl = new SqlDevImpl(conn);
             connectionMap.put(sqlImpl.id, conn);
@@ -81,18 +122,30 @@ public class SimpleDbImpl implements SimpleDb {
     }
 
     @Override
-    public void closeConnection(int id) {
+    public void closeConnectionAll() {
+        connectionPool.forEach(
+            conn-> {
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        );
+    }
+    @Override
+    public void closeConnection(UUID id) {
         try {
             Connection conn = connectionMap.get(id);
             conn.close();
             connectionMap.remove(id);
+            connectionPool.add(connect());
         } catch (SQLException e) {
-            throw new RuntimeException(e.getMessage());
+            throw new RuntimeException(e);
         }
     }
-
     @Override
-    public void startTransaction(int id) {
+    public void startTransaction(UUID id) {
         try {
             Connection conn = connectionMap.get(id);;
             conn.setAutoCommit(false);
@@ -102,7 +155,7 @@ public class SimpleDbImpl implements SimpleDb {
     }
 
     @Override
-    public void rollback(int id) {
+    public void rollback(UUID id) {
         try {
             Connection conn = connectionMap.get(id);
             conn.rollback();
@@ -112,7 +165,7 @@ public class SimpleDbImpl implements SimpleDb {
     }
 
     @Override
-    public void commit(int id) {
+    public void commit(UUID id) {
         try {
             Connection conn = connectionMap.get(id);
             conn.commit();
