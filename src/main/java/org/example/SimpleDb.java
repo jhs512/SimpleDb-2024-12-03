@@ -6,12 +6,14 @@ public class SimpleDb {
     private final int port = 3306;
     private boolean devMode;
     private Connection conn;
+    private Sql sql;
 
     public SimpleDb(String host, String user, String password, String name){
         String url = "jdbc:mysql://"+ host + ":" + port + "/" + name;
 
         try {
             conn = DriverManager.getConnection(url, user, password);
+            sql = new Sql(conn);
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -41,5 +43,9 @@ public class SimpleDb {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    public Sql genSql() {
+        return this.sql;
     }
 }
