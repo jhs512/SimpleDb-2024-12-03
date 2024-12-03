@@ -18,7 +18,7 @@ public class SimpleDb {
 
     private boolean devMode;
 
-    private ThreadLocal<Connection> connectionThreadLocal = ThreadLocal.withInitial(() -> null);
+    private ThreadLocal<Connection> connectionThreadLocal = new ThreadLocal<>();
 
     public SimpleDb(String host, String username, String password, String dbName) {
         this.host = "jdbc:mysql://" + host + "/" + dbName;
