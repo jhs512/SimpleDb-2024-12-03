@@ -14,7 +14,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-
+import java.time.temporal.ChronoUnit;
 import com.sql.Sql;
 
 @TestMethodOrder(MethodOrderer.MethodName.class)
@@ -133,6 +133,23 @@ public class SimpleDbTest {
         assertThat(articleRow.get("modifiedDate")).isInstanceOf(LocalDateTime.class);
         assertThat(articleRow.get("modifiedDate")).isNotNull();
         assertThat(articleRow.get("isBlind")).isEqualTo(false);
+    }
+
+	@Test
+    @DisplayName("selectDatetime")
+    public void t006() {
+        Sql sql = simpleDb.genSql();
+        /*
+        == rawSql ==
+        SELECT NOW()
+        */
+        sql.append("SELECT NOW()");
+
+        LocalDateTime datetime = sql.selectDatetime();
+
+        long diff = ChronoUnit.SECONDS.between(datetime, LocalDateTime.now());
+
+        assertThat(diff).isLessThanOrEqualTo(1L);
     }
 
 	private static void createArticleTable() {
