@@ -49,6 +49,13 @@ public class Sql {
         return this;
     }
 
+    public Sql append(String str, int value, int value2) {
+        query.append(str);
+        params.add(value+"");
+        params.add(value2+"");
+        return this;
+    }
+
     public long insert() {
         long articleId = -1L;
         try {
@@ -156,7 +163,43 @@ public class Sql {
     }
 
     public Long selectLong() {
+        if(query.toString().contains("?")) {
+            return executeQuery();
+        }
         return selectValue("id", Long.class);
+    }
+
+    private long executeQuery() {
+        long result = 0;
+        try {
+            PreparedStatement statement = connection.prepareStatement(query.toString());
+
+            IntStream.range(0, params.size())
+                .forEach(i -> {
+                    try {
+                        if (isNumber(params.get(i))) {
+                            statement.setInt(i + 1, Integer.parseInt(params.get(i)));
+                        } else {
+                            statement.setString(i + 1, params.get(i));
+                        }
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+
+            ResultSet resultSet = statement.executeQuery();
+
+            String substring = query.substring(7);
+            String[] split = substring.split(" ");
+            if (resultSet.next()) {
+                result = resultSet.getLong(split[0]);
+            }
+            statement.close();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+        return result;
     }
 
     public String selectString() {
