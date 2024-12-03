@@ -3,6 +3,7 @@ package com.sql;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -41,5 +42,9 @@ public class Sql {
 
 	public Map<String, Object> selectRow() {
 		return simpleDb.runSelectRow(sb.toString());
+	}
+
+	public LocalDateTime selectDatetime() {
+		return simpleDb.runSelectDatetime(sb.toString());
 	}
 }
