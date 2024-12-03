@@ -38,10 +38,7 @@ public class Sql {
             for(int i=1;i<=params.size();i++){
                 ps.setObject(i, params.get(i-1));
             }
-
-            if(devMode) {
-                System.out.println(ps);
-            }
+            loggingSql(ps);
             int id = ps.executeUpdate();
             ps.close();
 
@@ -63,10 +60,7 @@ public class Sql {
             for(int i=1;i<=params.size();i++){
                 ps.setObject(i, params.get(i-1));
             }
-
-            if(devMode) {
-                System.out.println(ps);
-            }
+            loggingSql(ps);
             int rs = ps.executeUpdate();
             ps.close();
 
@@ -87,10 +81,7 @@ public class Sql {
             for(int i=1;i<=params.size();i++){
                 ps.setObject(i, params.get(i-1));
             }
-
-            if(devMode) {
-                System.out.println(ps);
-            }
+            loggingSql(ps);
             int rs = ps.executeUpdate();
             ps.close();
 
@@ -107,10 +98,7 @@ public class Sql {
     public List<Map<String, Object>> selectRows() {
         try {
             PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString());
-
-            if(devMode) {
-                System.out.println(ps);
-            }
+            loggingSql(ps);
             ResultSet rs = ps.executeQuery();
 
             List<Map<String, Object>> results = new ArrayList<>();
@@ -139,10 +127,7 @@ public class Sql {
     public Map<String, Object> selectRow() {
         try {
             PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString());
-
-            if(devMode) {
-                System.out.println(ps);
-            }
+            loggingSql(ps);
             ResultSet rs = ps.executeQuery();
             Map<String, Object> results = new HashMap<>();
 
@@ -166,10 +151,7 @@ public class Sql {
     public LocalDateTime selectDatetime() {
         try {
             Statement stmt = conn.createStatement();
-
-            if(devMode) {
-                System.out.println(stmt);
-            }
+            loggingSql(stmt);
             ResultSet rs = stmt.executeQuery(sqlBuilder.toString());
             while(rs.next()){
                 return rs.getTimestamp("now()").toLocalDateTime();
@@ -187,16 +169,14 @@ public class Sql {
         try {
             PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString());
 
-            if(devMode) {
-                System.out.println(ps);
-            }
-
             // 파라미터 있으면 추가
             for(int i=1;i<=params.size();i++){
                 ps.setObject(i, params.get(i-1));
             }
 
-            ResultSet rs = ps.executeQuery(sqlBuilder.toString());
+            loggingSql(ps);
+            ResultSet rs = ps.executeQuery();
+
             while(rs.next()){
                 return rs.getLong(1);
             }
@@ -212,10 +192,7 @@ public class Sql {
     public String selectString() {
         try {
             PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString());
-
-            if(devMode) {
-                System.out.println(ps);
-            }
+            loggingSql(ps);
 
             ResultSet rs = ps.executeQuery(sqlBuilder.toString());
             while(rs.next()){
@@ -233,10 +210,7 @@ public class Sql {
     public Boolean selectBoolean() {
         try {
             PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString());
-
-            if(devMode) {
-                System.out.println(ps);
-            }
+            loggingSql(ps);
 
             ResultSet rs = ps.executeQuery(sqlBuilder.toString());
             while(rs.next()){
@@ -249,5 +223,11 @@ public class Sql {
 
         // 실패
         return false;
+    }
+
+    private void loggingSql(Statement ps){
+        if(devMode){
+            System.out.println(ps);
+        }
     }
 }
