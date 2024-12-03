@@ -7,9 +7,9 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 public class Sql {
-    private Connection connection;
-    private StringBuilder sb;
-    private List<Object> params;
+    private final Connection connection;
+    private final StringBuilder sb;
+    private final List<Object> params;
 
     private boolean devMode = false;
 
