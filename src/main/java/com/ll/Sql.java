@@ -218,6 +218,37 @@ public class Sql {
         return Map.of();
     }
 
+    public Article selectRow(Class<Article> article){
+        try {
+            PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString());
+            loggingSql(ps);
+            ResultSet rs = ps.executeQuery();
+
+            while(rs.next()){
+                long id = rs.getLong("id");
+                String title = rs.getString("title");
+                String body = rs.getString("body");
+                LocalDateTime createdDate = rs.getTimestamp("createdDate").toLocalDateTime();
+                LocalDateTime modifiedDate = rs.getTimestamp("modifiedDate").toLocalDateTime();
+                boolean isBlind = rs.getBoolean("isBlind");
+                return new Article(
+                        id,
+                        title,
+                        body,
+                        createdDate,
+                        modifiedDate,
+                        isBlind
+                );
+            }
+
+            return null;
+        }catch(SQLException e){
+            e.printStackTrace();
+        }
+        // 데이터 없음
+        return null;
+    }
+
     public LocalDateTime selectDatetime() {
         try {
             Statement stmt = conn.createStatement();

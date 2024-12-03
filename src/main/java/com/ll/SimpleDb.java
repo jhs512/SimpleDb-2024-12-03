@@ -1,10 +1,15 @@
 package com.ll;
 
 
+import lombok.Setter;
+
 import java.sql.*;
+
 
 public class SimpleDb {
     private Connection conn;
+
+    @Setter
     private boolean devMode;
 
     public SimpleDb(String host, String user, String password, String db) {
@@ -51,11 +56,17 @@ public class SimpleDb {
         }
     }
 
-    public Sql genSql() {
-        return new Sql(conn, this.devMode);
+    public void close(){
+        if (conn != null){
+            try{
+                conn.close();
+            }catch(SQLException e){
+                e.printStackTrace();
+            }
+        }
     }
 
-    public void setDevMode(boolean isDev) {
-        this.devMode = isDev;
+    public Sql genSql() {
+        return new Sql(conn, this.devMode);
     }
 }
