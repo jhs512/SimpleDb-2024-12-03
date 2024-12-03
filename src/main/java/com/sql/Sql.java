@@ -51,4 +51,8 @@ public class Sql {
 	public Long selectLong() {
 		return simpleDb.runSelectLong(sb.toString());
 	}
+
+	public String selectString() {
+		return simpleDb.runSelectString(sb.toString());
+	}
 }
