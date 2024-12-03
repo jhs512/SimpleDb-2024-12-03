@@ -189,7 +189,7 @@ public class SimpleDb {
 			throw new RuntimeException("해당 데이터가 존재하지 않습니다.");
 		}
 
-		return (String) result.get(split[1]);
+		return (String)result.get(split[1]);
 	}
 
 	public Boolean runSelectBoolean(String sql) {
@@ -211,8 +211,20 @@ public class SimpleDb {
 			throw new RuntimeException("해당 테이터가 존재하지 않습니다.");
 		}
 
-		Number number = (Number)result.get(sb.toString());
+		Object obj = result.get(sb.toString());
 
-		return number.intValue() == 1;
+		if (obj instanceof Boolean) {
+			return (Boolean)obj;
+		} else if (obj instanceof Number) {
+			Number number = (Number)result.get(sb.toString());
+
+			return number.intValue() == 1;
+		} else if (obj instanceof String) {
+			String str = obj.toString().toLowerCase();
+
+			return "true".equals(str);
+		}
+
+		return Boolean.FALSE;
 	}
 }
