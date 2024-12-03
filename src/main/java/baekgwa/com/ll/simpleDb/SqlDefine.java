@@ -5,6 +5,10 @@ import java.util.List;
 import java.util.Map;
 
 public interface SqlDefine {
+
+    void execute(String inputSql);
+    void execute(String inputSql, Object...params);
+
     long insert(); //return 생성된 id
     long update(); //return 업데이트 된 row 개수
     long delete(); //return 삭제된 row 개수
@@ -24,4 +28,6 @@ public interface SqlDefine {
     Sql append(String sql);
     Sql append(String sql, Object...params);
     Sql appendIn(String s, Object...params);
+
+    void printRowSql(String sql);
 }

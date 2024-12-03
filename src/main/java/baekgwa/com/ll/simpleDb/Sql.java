@@ -1,8 +1,8 @@
 package baekgwa.com.ll.simpleDb;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -12,20 +12,64 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * 역할)
+ * 1. Connection 사용해서 실제 SQL 실행 2.
+ * 2. devMode 에 따른 출력 처리
+ * 3. 최대한 공통으로 사용할 수 있도록 처리.
+ */
 @RequiredArgsConstructor
 public class Sql implements SqlDefine {
 
-    private final Connection connection;
-    private StringBuffer sb = new StringBuffer();
-    private final SimpleDb simpleDb;
+    @Getter
+    private final Connection connection; //해당 SQL을 실행하기 위해 할당된 Connection
+    private final StringBuffer sqlBuilder = new StringBuffer(); //실행할 sql문을 담아두는 buffer 역할
+    private final SimpleDb simpleDb; //connection 관리자
+    private final boolean devMode; //sql 출력 기능 on/off
+    private final boolean autoCloseConnection; //autoCloseConnection 기능 on/off
+
+    @Override
+    public void execute(String inputSql) {
+        try {
+            Statement statement = connection.createStatement();
+            statement.execute(inputSql);
+            printRowSql(inputSql);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if(autoCloseConnection) {
+                simpleDb.returnConnection(connection);
+            }
+        }
+    }
+
+    @Override
+    public void execute(String inputSql, Object... params) {
+        try {
+            PreparedStatement preparedStatement = connection.prepareStatement(inputSql);
+            for (int i = 0; i < params.length; i++) {
+                preparedStatement.setObject(i + 1, params[i]);
+            }
+            preparedStatement.execute();
+            printRowSql(preparedStatement.toString());
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if(autoCloseConnection) {
+                simpleDb.returnConnection(connection);
+            }
+        }
+    }
 
     @Override
     public long insert() {
         try {
             Statement statement = connection.createStatement();
-            statement.execute(sb.toString(), Statement.RETURN_GENERATED_KEYS);
+            statement.execute(sqlBuilder.toString(), Statement.RETURN_GENERATED_KEYS);
+            printRowSql(sqlBuilder.toString());
 
             ResultSet generatedKeys = statement.getGeneratedKeys();
             generatedKeys.next();
@@ -33,7 +77,9 @@ public class Sql implements SqlDefine {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         } finally {
-            simpleDb.returnConnection(connection);
+            if(autoCloseConnection) {
+                simpleDb.returnConnection(connection);
+            }
         }
     }
 
@@ -41,11 +87,14 @@ public class Sql implements SqlDefine {
     public long update() {
         try {
             Statement statement = connection.createStatement();
-            return statement.executeUpdate(sb.toString());
+            printRowSql(sqlBuilder.toString());
+            return statement.executeUpdate(sqlBuilder.toString());
         } catch (SQLException e) {
             throw new RuntimeException(e);
         } finally {
-            simpleDb.returnConnection(connection);
+            if(autoCloseConnection) {
+                simpleDb.returnConnection(connection);
+            }
         }
     }
 
@@ -53,11 +102,14 @@ public class Sql implements SqlDefine {
     public long delete() {
         try {
             Statement statement = connection.createStatement();
-            return statement.executeUpdate(sb.toString());
+            printRowSql(sqlBuilder.toString());
+            return statement.executeUpdate(sqlBuilder.toString());
         } catch (SQLException e) {
             throw new RuntimeException(e);
         } finally {
-            simpleDb.returnConnection(connection);
+            if(autoCloseConnection) {
+                simpleDb.returnConnection(connection);
+            }
         }
     }
 
@@ -65,7 +117,8 @@ public class Sql implements SqlDefine {
     public List<Map<String, Object>> selectRows() {
         try {
             Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sb.toString());
+            ResultSet resultSet = statement.executeQuery(sqlBuilder.toString());
+            printRowSql(sqlBuilder.toString());
 
             ResultSetMetaData metaData = resultSet.getMetaData();
             List<Map<String, Object>> result = new ArrayList<>();
@@ -83,7 +136,9 @@ public class Sql implements SqlDefine {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         } finally {
-            simpleDb.returnConnection(connection);
+            if(autoCloseConnection) {
+                simpleDb.returnConnection(connection);
+            }
         }
     }
 
@@ -91,7 +146,8 @@ public class Sql implements SqlDefine {
     public <T> List<T> selectRows(Class<T> tClass) {
         try {
             Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sb.toString());
+            ResultSet resultSet = statement.executeQuery(sqlBuilder.toString());
+            printRowSql(sqlBuilder.toString());
             List<T> resultList = new ArrayList<>();
 
             while (resultSet.next()) {
@@ -112,7 +168,9 @@ public class Sql implements SqlDefine {
         } catch (SQLException | ReflectiveOperationException e) {
             throw new RuntimeException(e);
         } finally {
-            simpleDb.returnConnection(connection);
+            if(autoCloseConnection) {
+                simpleDb.returnConnection(connection);
+            }
         }
     }
 
@@ -120,7 +178,8 @@ public class Sql implements SqlDefine {
     public Map<String, Object> selectRow() {
         try {
             Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sb.toString());
+            ResultSet resultSet = statement.executeQuery(sqlBuilder.toString());
+            printRowSql(sqlBuilder.toString());
 
             ResultSetMetaData metaData = resultSet.getMetaData();
             Map<String, Object> result = new HashMap<>();
@@ -135,7 +194,9 @@ public class Sql implements SqlDefine {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         } finally {
-            simpleDb.returnConnection(connection);
+            if(autoCloseConnection) {
+                simpleDb.returnConnection(connection);
+            }
         }
     }
 
@@ -143,7 +204,8 @@ public class Sql implements SqlDefine {
     public <T> T selectRow(Class<T> tClass) {
         try {
             Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sb.toString());
+            ResultSet resultSet = statement.executeQuery(sqlBuilder.toString());
+            printRowSql(sqlBuilder.toString());
 
             resultSet.next();
             T instance = tClass.getDeclaredConstructor().newInstance();
@@ -160,7 +222,9 @@ public class Sql implements SqlDefine {
         } catch (SQLException | ReflectiveOperationException e) {
             throw new RuntimeException(e);
         } finally {
-            simpleDb.returnConnection(connection);
+            if(autoCloseConnection) {
+                simpleDb.returnConnection(connection);
+            }
         }
     }
 
@@ -168,14 +232,17 @@ public class Sql implements SqlDefine {
     public LocalDateTime selectDatetime() {
         try {
             Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sb.toString());
+            ResultSet resultSet = statement.executeQuery(sqlBuilder.toString());
+            printRowSql(sqlBuilder.toString());
 
             resultSet.next();
             return resultSet.getTimestamp(1).toLocalDateTime();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         } finally {
-            simpleDb.returnConnection(connection);
+            if(autoCloseConnection) {
+                simpleDb.returnConnection(connection);
+            }
         }
     }
 
@@ -183,14 +250,17 @@ public class Sql implements SqlDefine {
     public long selectLong() {
         try {
             Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sb.toString());
+            ResultSet resultSet = statement.executeQuery(sqlBuilder.toString());
+            printRowSql(sqlBuilder.toString());
 
             resultSet.next();
             return resultSet.getLong(1);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         } finally {
-            simpleDb.returnConnection(connection);
+            if(autoCloseConnection) {
+                simpleDb.returnConnection(connection);
+            }
         }
     }
 
@@ -198,14 +268,17 @@ public class Sql implements SqlDefine {
     public String selectString() {
         try {
             Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sb.toString());
+            ResultSet resultSet = statement.executeQuery(sqlBuilder.toString());
+            printRowSql(sqlBuilder.toString());
 
             resultSet.next();
             return resultSet.getString(1);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         } finally {
-            simpleDb.returnConnection(connection);
+            if(autoCloseConnection) {
+                simpleDb.returnConnection(connection);
+            }
         }
     }
 
@@ -213,14 +286,17 @@ public class Sql implements SqlDefine {
     public boolean selectBoolean() {
         try {
             Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sb.toString());
+            ResultSet resultSet = statement.executeQuery(sqlBuilder.toString());
+            printRowSql(sqlBuilder.toString());
 
             resultSet.next();
             return resultSet.getBoolean(1);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         } finally {
-            simpleDb.returnConnection(connection);
+            if(autoCloseConnection) {
+                simpleDb.returnConnection(connection);
+            }
         }
     }
 
@@ -228,7 +304,8 @@ public class Sql implements SqlDefine {
     public List<Long> selectLongs() {
         try {
             Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sb.toString());
+            ResultSet resultSet = statement.executeQuery(sqlBuilder.toString());
+            printRowSql(sqlBuilder.toString());
 
             ArrayList<Long> result = new ArrayList<>();
             while (resultSet.next()) {
@@ -238,37 +315,48 @@ public class Sql implements SqlDefine {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         } finally {
-            simpleDb.returnConnection(connection);
-        }
-    }
-
-    @Override
-    public Sql append(String sql) {
-        sb.append(sql + " ");
-        return this;
-    }
-
-    @Override
-    public Sql append(String sql, Object... params) {
-        for (Object param : params) {
-            sql = sql.replaceFirst("\\?", "'" + param + "'");
-        }
-        sb.append(sql);
-
-        return this;
-    }
-
-    @Override
-    public Sql appendIn(String sql, Object... params) {
-        StringBuffer stringBuffer = new StringBuffer();
-        for (int i = 0; i < params.length; i++) {
-            stringBuffer.append("'").append(params[i]).append("'");
-            if (i < params.length - 1) {
-                stringBuffer.append(", ");
+            if(autoCloseConnection) {
+                simpleDb.returnConnection(connection);
             }
         }
-        sql = sql.replaceFirst("\\?", stringBuffer.toString());
-        this.sb.append(sql);
+    }
+
+    @Override
+    public Sql append(String inputSql) {
+        sqlBuilder.append(inputSql + " ");
         return this;
+    }
+
+    @Override
+    public Sql append(String inputSql, Object... params) {
+        for (Object param : params) {
+            inputSql = inputSql.replaceFirst("\\?", "'" + param + "'");
+        }
+        sqlBuilder.append(inputSql);
+
+        return this;
+    }
+
+    @Override
+    public Sql appendIn(String inputSql, Object... params) {
+        StringBuilder stringBuilder = new StringBuilder();
+        for (int i = 0; i < params.length; i++) {
+            stringBuilder.append("'").append(params[i]).append("'");
+            if (i < params.length - 1) {
+                stringBuilder.append(", ");
+            }
+        }
+        inputSql = inputSql.replaceFirst("\\?", stringBuilder.toString());
+        this.sqlBuilder.append(inputSql);
+        return this;
+    }
+
+    @Override
+    public void printRowSql(String inputSql) {
+        if (devMode) {
+            System.out.println("== rawSql ==");
+            System.out.println(inputSql);
+            System.out.println();
+        }
     }
 }

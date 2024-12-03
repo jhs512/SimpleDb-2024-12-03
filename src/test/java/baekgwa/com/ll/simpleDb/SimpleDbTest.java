@@ -30,7 +30,7 @@ class SimpleDbTest {
     @BeforeAll
     public static void beforeAll() {
 //        simpleDb = new SimpleDb("localhost", "root", "lldj123414", "simpleDb__test");
-        simpleDb = new SimpleDb("localhost", "root", "1234", "simpleDb__test");
+        simpleDb = new SimpleDb("localhost", "root", "1234", "simpleDb__test", "3334");
         simpleDb.setDevMode(true);
 
         createArticleTable();
@@ -495,15 +495,16 @@ class SimpleDbTest {
                 .selectLong();
 
         // 트랜잭션을 시작합니다.
-        simpleDb.startTransaction();
+        Sql sql = simpleDb.genSql();
+        simpleDb.startTransaction(sql.getConnection());
 
-        simpleDb.genSql()
+        sql
                 .append("INSERT INTO article ")
                 .append("(createdDate, modifiedDate, title, body)")
                 .appendIn("VALUES (NOW(), NOW(), ?)", "새 제목", "새 내용")
                 .insert();
 
-        simpleDb.rollback();
+        simpleDb.rollback(sql.getConnection());
 
         long newCount = simpleDb.genSql()
                 .append("SELECT COUNT(*)")
@@ -523,15 +524,16 @@ class SimpleDbTest {
                 .selectLong();
 
         // 트랜잭션을 시작합니다.
-        simpleDb.startTransaction();
+        Sql sql = simpleDb.genSql();
+        simpleDb.startTransaction(sql.getConnection());
 
-        simpleDb.genSql()
+        sql
                 .append("INSERT INTO article ")
                 .append("(createdDate, modifiedDate, title, body)")
                 .appendIn("VALUES (NOW(), NOW(), ?)", "새 제목", "새 내용")
                 .insert();
 
-        simpleDb.commit();
+        simpleDb.commit(sql.getConnection());
 
         long newCount = simpleDb.genSql()
                 .append("SELECT COUNT(*)")
