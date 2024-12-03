@@ -88,15 +88,17 @@ public class Sql {
         return result;
     }
     Object getColumnContent(ResultSet rs,String name,String type) throws SQLException {
+            if(type.contains("BIT") || type.contains("BIGINT")) {
+                return rs.getBoolean(name);
+            }
             if(type.contains("INT"))
                 return rs.getLong(name);
-            if(type.equals("DATETIME") || type.equals("NOW()") ) {
+            if(type.equals("DATETIME")) {
                 return rs.getTimestamp(name).toLocalDateTime();
             }
             if(type.contains("VARCHAR") || type.equals("TEXT"))
                 return rs.getString(name);
-            if(type.contains("BIT"))
-                return rs.getBoolean(name);
+
             return null;
 
     }
