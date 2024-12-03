@@ -171,8 +171,10 @@ public class SimpleDb {
 	public Long runSelectLong(String sql) {
 		Map<String, Object> result = runSelectRow(sql);
 
-		if (!result.containsKey("id")) {
-			throw new RuntimeException("해당 아이디가 존재하지 않습니다.");
+		String[] split = sql.split(" ");
+
+		if (!result.containsKey(split[1])) {
+			throw new RuntimeException("해당 데이터가 존재하지 않습니다.");
 		}
 
 		return Long.parseLong(result.get("id").toString());
