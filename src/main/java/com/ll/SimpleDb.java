@@ -119,4 +119,13 @@ public class SimpleDb {
             }
         }
     }
+
+    public void commit(){
+        try {
+            conn.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
 }
