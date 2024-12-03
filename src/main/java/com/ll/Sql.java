@@ -1,6 +1,11 @@
 package com.ll;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.sql.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -10,12 +15,14 @@ public class Sql {
     private StringBuilder sqlBuilder;
     private List<Object> params;
     private boolean devMode;
+    private ObjectMapper objectMapper;
 
     public Sql(Connection conn, boolean devMode) {
         this.sqlBuilder = new StringBuilder();
         this.conn = conn;
         this.params = new ArrayList<>();
         this.devMode = devMode;
+        objectMapper = new ObjectMapper();
     }
 
     // 단순 쿼리 더하기
@@ -136,6 +143,54 @@ public class Sql {
             e.printStackTrace();
         }
         // 데이터 없음
+        return List.of();
+    }
+
+    public List<Article> selectRows(Class<Article> articleClass) {
+        try {
+            PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString());
+
+
+            loggingSql(ps);
+            ResultSet rs = ps.executeQuery();
+
+            List<Article> results = new ArrayList<>();
+
+            while(rs.next()){
+                // JSON 데이터 생성
+//                Map<String, Object> map = new HashMap<>();
+//                map.put("id", rs.getLong("id"));
+//                map.put("title", rs.getString("title"));
+//                map.put("body", rs.getString("body"));
+//                map.put("createdDate", rs.getTimestamp("createdDate").toLocalDateTime());
+//                map.put("modifiedDate", rs.getTimestamp("modifiedDate").toLocalDateTime());
+//                map.put("isBlind", rs.getBoolean("isBlind"));
+//
+//                // Map을 JSON으로 변환 후 객체로 매핑
+//                String json = objectMapper.writeValueAsString(map);
+//                Article article = objectMapper.readValue(json, Article.class);
+
+                long id = rs.getLong("id");
+                String title = rs.getString("title");
+                String body = rs.getString("body");
+                LocalDateTime createdDate = rs.getTimestamp("createdDate").toLocalDateTime();
+                LocalDateTime modifiedDate = rs.getTimestamp("modifiedDate").toLocalDateTime();
+                boolean isBlind = rs.getBoolean("isBlind");
+                results.add(new Article(
+                        id,
+                        title,
+                        body,
+                        createdDate,
+                        modifiedDate,
+                        isBlind
+                ));
+            }
+
+            return results;
+        }catch(SQLException e){
+            e.printStackTrace();
+        }
+        // null
         return List.of();
     }
 
@@ -272,4 +327,5 @@ public class Sql {
         // null
         return List.of();
     }
+
 }
