@@ -47,4 +47,8 @@ public class Sql {
 	public LocalDateTime selectDatetime() {
 		return simpleDb.runSelectDatetime(sb.toString());
 	}
+
+	public Long selectLong() {
+		return simpleDb.runSelectLong(sb.toString());
+	}
 }
