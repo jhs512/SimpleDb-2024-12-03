@@ -176,7 +176,12 @@ public class Sql {
                 } else if(type == LocalDateTime.class) {
                     result = type.cast(resultSet.getTimestamp(columnName).toLocalDateTime());
                 } else if (type == Boolean.class) {
-                    result = type.cast(resultSet.getBoolean(columnName));
+                    try {
+                        result = type.cast(resultSet.getBoolean(columnName));
+                    } catch (SQLException e) {
+                        String substring = query.substring(7);
+                        result = type.cast(resultSet.getBoolean(substring));
+                    }
                 }
             }
             statement.close();

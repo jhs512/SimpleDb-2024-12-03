@@ -255,4 +255,34 @@ public class SimpleDbTest {
         assertThat(isBlind).isEqualTo(false);
     }
 
+    @Test
+    @DisplayName("SELECT Boolean 테스트2")
+    public void selectBoolean2() {
+        Sql sql = simpleDb.genSql();
+        /*
+        == rawSql ==
+        SELECT 1 = 1
+        */
+        sql.append("SELECT 1 = 1");
+
+        Boolean isBlind = sql.selectBoolean();
+
+        assertThat(isBlind).isEqualTo(true);
+    }
+
+    @Test
+    @DisplayName("SELECT Boolean 테스트3")
+    public void selectBoolean3() {
+        Sql sql = simpleDb.genSql();
+        /*
+        == rawSql ==
+        SELECT 1 = 0
+        */
+        sql.append("SELECT 1 = 0");
+
+        Boolean isBlind = sql.selectBoolean();
+
+        assertThat(isBlind).isEqualTo(false);
+    }
+
 }
