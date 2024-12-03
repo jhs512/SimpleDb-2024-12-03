@@ -23,8 +23,19 @@ public class Sql {
     private final ArrayList<Object> params = new ArrayList<>();
 
     public Sql append(String str, Object... values) {
-        query.append(str);
+        query.append(str).append(" ");
         // Object 타입으로 값을 추가
+        params.addAll(Arrays.asList(values));
+        return this;
+    }
+
+    public Sql appendIn(String s, Object... values) {
+        String[] split = s.split("\\?");
+        String sb = split[0] + "?"
+            + ", ?".repeat(Math.max(0, values.length - 1));
+            append(split[1]);
+
+        query.append(sb);
         params.addAll(Arrays.asList(values));
         return this;
     }
@@ -185,7 +196,7 @@ public class Sql {
                     try {
                         result = type.cast(resultSet.getBoolean(columnName));
                     } catch (SQLException e) {
-                        String substring = query.substring(7);
+                        String substring = query.substring(7).trim();
                         result = type.cast(resultSet.getBoolean(substring));
                     }
                 }

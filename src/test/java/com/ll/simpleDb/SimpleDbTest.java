@@ -94,7 +94,7 @@ public class SimpleDbTest {
         title = '제목 new' ,
         body = '내용 new'
         */
-        sql.append("INSERT INTO article ")
+        sql.append("INSERT INTO article")
             .append("SET createdDate = NOW()")
             .append(", modifiedDate = NOW()")
             .append(", title = ?", "제목 new")
@@ -119,7 +119,7 @@ public class SimpleDbTest {
         SET title = '제목 new'
         WHERE id IN ('0', '1', '2', '3')
         */
-        sql.append("UPDATE article ")
+        sql.append("UPDATE article")
             .append("SET title = ?", "제목 new")
             .append("WHERE id IN (?, ?, ?, ?)", 0, 1, 2, 3);
 
@@ -141,8 +141,8 @@ public class SimpleDbTest {
         DELETE FROM article
         WHERE id IN ('0', '1', '3')
         */
-        sql.append("DELETE ")
-            .append("FROM article ")
+        sql.append("DELETE")
+            .append("FROM article")
             .append("WHERE id IN (?, ?, ?)", 0, 1, 3);
 
         // 삭제된 row 개수
@@ -208,9 +208,10 @@ public class SimpleDbTest {
         FROM article
         WHERE id = 1
         */
-        sql.append("SELECT id ")
-            .append("FROM article ")
+        sql.append("SELECT id")
+            .append("FROM article")
             .append("WHERE id = 1");
+
 
         Long id = sql.selectLong();
 
@@ -227,8 +228,8 @@ public class SimpleDbTest {
         FROM article
         WHERE id = 1
         */
-        sql.append("SELECT title ")
-            .append("FROM article ")
+        sql.append("SELECT title")
+            .append("FROM article")
             .append("WHERE id = 1");
 
         String title = sql.selectString();
@@ -246,8 +247,8 @@ public class SimpleDbTest {
         FROM article
         WHERE id = 1
         */
-        sql.append("SELECT isBlind ")
-            .append("FROM article ")
+        sql.append("SELECT isBlind")
+            .append("FROM article")
             .append("WHERE id = 1");
 
         Boolean isBlind = sql.selectBoolean();
@@ -296,10 +297,29 @@ public class SimpleDbTest {
         WHERE id BETWEEN '1' AND '3'
         AND title LIKE CONCAT('%', '제목' '%')
         */
-        sql.append("SELECT COUNT(*) ")
-            .append("FROM article ")
-            .append("WHERE id BETWEEN ? AND ? ", 1, 3)
+        sql.append("SELECT COUNT(*)")
+            .append("FROM article")
+            .append("WHERE id BETWEEN ? AND ?", 1, 3)
             .append("AND title LIKE CONCAT('%', ? '%')", "제목");
+
+        long count = sql.selectLong();
+
+        assertThat(count).isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("appendIn 테스트")
+    public void appendInTest() {
+        Sql sql = simpleDb.genSql();
+        /*
+        == rawSql ==
+        SELECT COUNT(*)
+        FROM article
+        WHERE id IN ('1', '2', '3')
+        */
+        sql.append("SELECT COUNT(*)")
+            .append("FROM article")
+            .appendIn("WHERE id IN (?)", 1, 2, 3);
 
         long count = sql.selectLong();
 
