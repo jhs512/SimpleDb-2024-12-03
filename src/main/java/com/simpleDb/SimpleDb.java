@@ -213,18 +213,19 @@ public class SimpleDb {
 
 		Object obj = result.get(sb.toString());
 
-		if (obj instanceof Boolean) {
-			return (Boolean)obj;
-		} else if (obj instanceof Number) {
-			Number number = (Number)result.get(sb.toString());
+		Boolean booleanValue;
 
-			return number.intValue() == 1;
-		} else if (obj instanceof String) {
-			String str = obj.toString().toLowerCase();
+		switch (obj) {
+			case Boolean b -> booleanValue = (Boolean)obj;
+			case String s -> booleanValue = "true".equals(obj.toString().toLowerCase());
+			case Number n -> {
+				Number number = (Number)result.get(sb.toString());
 
-			return "true".equals(str);
+				booleanValue = number.intValue() == 1;
+			}
+			default -> booleanValue = Boolean.FALSE;
 		}
 
-		return Boolean.FALSE;
+		return booleanValue;
 	}
 }
