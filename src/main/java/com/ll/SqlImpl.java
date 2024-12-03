@@ -1,8 +1,10 @@
 package com.ll;
 
+import java.lang.reflect.Field;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class SqlImpl implements Sql {
 
@@ -24,6 +26,18 @@ public class SqlImpl implements Sql {
         }else{
             // TODO : 파라미터 개수가 일치하지 않는다.
         }
+        return this;
+    }
+
+    @Override
+    public SqlImpl appendIn(String queryPiece, Object... values) {
+        StringBuilder sb = new StringBuilder();
+        for(Object value : values) {
+            sb.append("'");
+            sb.append(value);
+            sb.append("',");
+        }
+        query.append(queryPiece.replaceFirst("\\?", sb.substring(0, sb.length()-1)));
         return this;
     }
 
@@ -83,6 +97,11 @@ public class SqlImpl implements Sql {
     }
 
     @Override
+    public <T> T selectRow(Class<T> clazz) {
+        return selectRows(clazz).getFirst();
+    }
+
+    @Override
     public LocalDateTime selectDatetime() {
         return LocalDateTime.now();
     }
@@ -108,6 +127,36 @@ public class SqlImpl implements Sql {
         return list;
     }
 
+    public <T> List<T> selectRows(Class<T> clazz) {
+        List<T> list = new ArrayList<>();
+        try{
+            executeQuery();
+            ResultSet rs = stmt.getResultSet();
+            ResultSetMetaData metaData = rs.getMetaData();
+            int columnCount = metaData.getColumnCount();
+            while (rs.next()) {
+                T obj = clazz.getDeclaredConstructor().newInstance(); // 기본 생성자 호출
+                for (int i = 1; i <= columnCount; i++) {
+                    String columnName = metaData.getColumnName(i);
+                    Object value = rs.getObject(columnName); // 컬럼 값 가져오기
+
+                    // 자바 리플렉션을 사용해서 필드에 값을 설정
+                    try {
+                        Field field = clazz.getDeclaredField(columnName);
+                        field.setAccessible(true);  // private 필드 접근 허용
+                        field.set(obj, value);      // 필드에 값 설정
+                    } catch (NoSuchFieldException e) {
+                        // 해당 필드가 없을 경우 무시
+                    }
+                }
+                list.add(obj);
+            }
+        }catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
     private Object select(Object obj){
         Map<String, Object> row = selectRow();
         for(Object o : row.values()) {
@@ -116,6 +165,19 @@ public class SqlImpl implements Sql {
             }
         }
         return null;
+    }
+
+    private List<Object> selects(Object obj){
+        List<Map<String, Object>> rows = selectRows();
+        List<Object> list = new ArrayList<>();
+        for(Map<String, Object> row : rows) {
+            for(Object o : row.values()) {
+                if(obj.getClass().isInstance(o.getClass())) {
+                    list.add(o);
+                }
+            }
+        }
+        return list;
     }
 
     @Override
@@ -130,7 +192,15 @@ public class SqlImpl implements Sql {
 
     @Override
     public Boolean selectBoolean() {
-        Long result = (Long)select(Boolean.class);
-        return result != null && result == 1;
+        Object result = select(Boolean.class);
+        return result != null && result == (Long)1L;
+    }
+
+    @Override
+    public List<Long> selectLongs() {
+        return selects(Long.class)
+                .stream()
+                .map((o-> (Long)o))
+                .collect(Collectors.toList());
     }
 }
