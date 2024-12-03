@@ -52,20 +52,22 @@ public class Sql {
 
     private String replaceWithParams(String sql, Object... params) {
         String[] strings = sql.split("\\?");
-        StringBuilder sb = new StringBuilder(strings[0]);
+        StringBuilder sb = new StringBuilder();
 
         for (int i = 0; i < params.length; i++) {
-            if (i > 0) {
-                sb.append(" , \n");
-            }
+            sb.append(strings[i]);
             sb.append(reformat(params[i]));
-
-            if(i + 1 < strings.length){
-               sb.append(strings[i + 1]);
-            }
         }
 
-        return sb.toString();
+        if(strings.length > params.length) {
+            sb.append(strings[params.length]);
+        }
+
+        String[] lines = sb.toString().split(",");
+        return Arrays.stream(lines)
+                .map(String::trim)
+                .reduce((line1, line2) -> line1 + " ,\n" + line2)
+                .orElse(""); // 빈 쿼리일 경우 처리
     }
 
     private void showQuery(){
@@ -79,6 +81,12 @@ public class Sql {
         }
     }
 
+    private void setParam(PreparedStatement preparedStatement) throws SQLException {
+        for (int i = 0; i < params.size(); i++) {
+            preparedStatement.setObject(i + 1, params.get(i));
+        }
+    }
+
     public long insert() {
         String sql = sb.toString().trim();
 
@@ -87,9 +95,7 @@ public class Sql {
         try {
             PreparedStatement preparedStatement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 
-            for (int i = 0; i < params.size(); i++) {
-                preparedStatement.setObject(i + 1, params.get(i));
-            }
+            setParam(preparedStatement);
 
             int row = preparedStatement.executeUpdate();
 
@@ -118,9 +124,7 @@ public class Sql {
         try {
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
-            for (int i = 0; i < params.size(); i++) {
-                preparedStatement.setObject(i + 1, params.get(i));
-            }
+            setParam(preparedStatement);
 
             return preparedStatement.executeUpdate();
 
@@ -138,9 +142,7 @@ public class Sql {
         try {
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
-            for (int i = 0; i < params.size(); i++) {
-                preparedStatement.setObject(i + 1, params.get(i));
-            }
+            setParam(preparedStatement);
 
             return preparedStatement.executeUpdate();
 
@@ -315,9 +317,7 @@ public class Sql {
         try {
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
-            for (int i = 0; i < params.size(); i++) {
-                preparedStatement.setObject(i + 1, params.get(i));
-            }
+            setParam(preparedStatement);
 
             ResultSet rs = preparedStatement.executeQuery();
 
