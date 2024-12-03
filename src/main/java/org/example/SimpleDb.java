@@ -41,8 +41,6 @@ public class SimpleDb {
         try{
             preparedStatement = connection.prepareStatement(sql);
 
-            System.out.println("sql = " + sql);
-
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
             System.out.println("sql 오류 " + e);
@@ -54,7 +52,6 @@ public class SimpleDb {
             sql = sql.replace("title = ?", "title = \"" + title + "\"");
             sql = sql.replace("`body` = ?", "`body` = \"" + body + "\"");
             sql = sql.replace("isBlind = ?", "isBlind = " + isBlind);
-            System.out.println("sql = " + sql);
 
             preparedStatement = connection.prepareStatement(sql);
             preparedStatement.executeUpdate();
