@@ -143,4 +143,9 @@ public class Sql {
         return (String) selectRow().get(getRowColumnName(selectRow().keySet()));
     }
 
+    boolean selectBoolean(){
+        return (boolean) selectRow().get(getRowColumnName(selectRow().keySet()));
+
+    }
+
 }
