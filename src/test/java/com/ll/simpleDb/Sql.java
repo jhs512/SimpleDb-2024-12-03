@@ -1,11 +1,11 @@
 package com.ll.simpleDb;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Sql {
     StringBuilder sql = new StringBuilder();
@@ -77,6 +77,31 @@ public class Sql {
 
     long delete(){
         return runQeury();
+    }
+
+    List<Map<String, Object>> selectRows(){
+        List<Map<String, Object>> result = new ArrayList<>();
+        try (PreparedStatement stmt = con.prepareStatement(sql.toString())) {
+            //결과를 담을 ResultSet 생성 후 결과 담기
+            ResultSet rs = stmt.executeQuery();
+            while(rs.next()) {
+                Map<String,Object> save = new HashMap<>();
+                save.put("id",rs.getLong("id"));
+                save.put("title",rs.getString("title"));
+                save.put("body",rs.getString("body"));
+                save.put("createdDate",convertDateToLocalDataTime(rs.getDate("createdDate")));
+                save.put("modifiedDate",convertDateToLocalDataTime(rs.getDate("modifiedDate")));
+                save.put("isBlind",rs.getBoolean("isBlind"));
+                result.add(save);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return result;
+    }
+
+    LocalDateTime convertDateToLocalDataTime(Date d){
+        return new java.sql.Timestamp(d.getTime()).toLocalDateTime();
     }
 
 
