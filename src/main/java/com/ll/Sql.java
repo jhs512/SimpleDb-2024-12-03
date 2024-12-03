@@ -31,6 +31,14 @@ public class Sql {
         return this;
     }
 
+    public Sql appendIn(String query, Object ... params) {
+        String placeHolders = String.join(",",Collections.nCopies(params.length, "?"));
+        query = query.replace("(?)", "(" + placeHolders + ")");
+        sqlBuilder.append(" ").append(query);
+        this.params.addAll(Arrays.asList(params));
+        return this;
+    }
+
     public long insert() {
         try {
             PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString(), Statement.RETURN_GENERATED_KEYS);
@@ -230,4 +238,5 @@ public class Sql {
             System.out.println(ps);
         }
     }
+
 }
