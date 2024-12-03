@@ -167,4 +167,14 @@ public class SimpleDb {
 		return result.containsKey("NOW()") ?
 			LocalDateTime.parse(result.get("NOW()").toString()) : null;
 	}
+
+	public Long runSelectLong(String sql) {
+		Map<String, Object> result = runSelectRow(sql);
+
+		if (!result.containsKey("id")) {
+			throw new RuntimeException("해당 아이디가 존재하지 않습니다.");
+		}
+
+		return Long.parseLong(result.get("id").toString());
+	}
 }
