@@ -158,7 +158,6 @@ public class Sql implements SqlDefine {
                     String columnName = field.getName();
                     Object columnValue = resultSet.getObject(columnName);
 
-                    // 필드에 값을 설정
                     field.set(instance, columnValue);
                 }
                 resultList.add(instance);
@@ -214,8 +213,6 @@ public class Sql implements SqlDefine {
                 field.setAccessible(true);
                 String columnName = field.getName();
                 Object columnValue = resultSet.getObject(columnName);
-
-                // 필드에 값을 설정
                 field.set(instance, columnValue);
             }
             return instance;
