@@ -78,8 +78,7 @@ public class Sql {
     long delete(){
         return runQeury();
     }
-
-    List<Map<String, Object>> selectRows(){
+    Object select(){
         List<Map<String, Object>> result = new ArrayList<>();
         try (PreparedStatement stmt = con.prepareStatement(sql.toString())) {
             //결과를 담을 ResultSet 생성 후 결과 담기
@@ -97,7 +96,15 @@ public class Sql {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
+        if(result.size() == 1) return result.getFirst();
         return result;
+    }
+
+    List<Map<String, Object>> selectRows(){
+        return (List<Map<String, Object>>)select();
+    }
+    Map<String, Object> selectRow(){
+        return (Map<String, Object>)select();
     }
 
     LocalDateTime convertDateToLocalDataTime(Date d){
