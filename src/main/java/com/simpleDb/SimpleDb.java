@@ -177,4 +177,12 @@ public class SimpleDb {
 
 		return Long.parseLong(result.get("id").toString());
 	}
+
+	public String runSelectString(String sql) {
+		Map<String, Object> stringObjectMap = runSelectRow(sql);
+
+		String[] split = sql.split(" ");
+
+		return (String) stringObjectMap.get(split[1]);
+	}
 }
