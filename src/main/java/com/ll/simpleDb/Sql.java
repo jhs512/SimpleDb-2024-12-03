@@ -32,8 +32,7 @@ public class Sql {
     public Sql appendIn(String s, Object... values) {
         String[] split = s.split("\\?");
         String sb = split[0] + "?"
-            + ", ?".repeat(Math.max(0, values.length - 1));
-            append(split[1]);
+            + ", ?".repeat(Math.max(0, values.length - 1)) + split[split.length - 1];
 
         query.append(sb);
         params.addAll(Arrays.asList(values));
@@ -176,6 +175,39 @@ public class Sql {
         return result;
     }
 
+    private List<Long> executeQueryForList() {
+        List<Long> result = new ArrayList<>();
+        try {
+            PreparedStatement statement = connection.prepareStatement(query.toString());
+
+            IntStream.range(0, params.size())
+                .forEach(i -> {
+                    try {
+                        if (params.get(i) instanceof Integer) {
+                            statement.setInt(i + 1, (Integer) params.get(i));
+                        } else if (params.get(i) instanceof Long) {
+                            statement.setLong(i + 1, (Long) params.get(i));
+                        } else {
+                            statement.setString(i + 1, (String) params.get(i));
+                        }
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+
+            ResultSet resultSet = statement.executeQuery();
+            while(resultSet.next()) {
+                result.add(resultSet.getLong(1));
+            }
+
+            statement.close();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+        return result;
+    }
+
     public String selectString() {
         return selectValue("title", String.class);
     }
@@ -210,5 +242,9 @@ public class Sql {
 
     public Boolean selectBoolean() {
         return selectValue("isBlind", Boolean.class);
+    }
+
+    public List<Long> selectLongs() {
+        return executeQueryForList();
     }
 }
