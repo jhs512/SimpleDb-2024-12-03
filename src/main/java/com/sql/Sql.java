@@ -55,4 +55,8 @@ public class Sql {
 	public String selectString() {
 		return simpleDb.runSelectString(sb.toString());
 	}
+
+	public Boolean selectBoolean() {
+		return simpleDb.runSelectBoolean(sb.toString());
+	}
 }
