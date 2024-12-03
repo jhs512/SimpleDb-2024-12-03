@@ -72,6 +72,19 @@ public class Sql {
         return -1;
     }
 
+    public long delete() {
+        try {
+            PreparedStatement pstmt = conn.prepareStatement(query);
+            setParams(pstmt);
+            clearQuery();
+
+            return pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
+
     @Override
     public String toString() {
         return query;
