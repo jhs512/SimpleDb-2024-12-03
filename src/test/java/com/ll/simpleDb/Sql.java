@@ -135,6 +135,12 @@ public class Sql {
             name = i;
         return (LocalDateTime) selectRow().get(name);
     }
+    long selectLong(){
+        String name = "";
+        for(String i : selectRow().keySet())
+            name = i;
+        return (long) selectRow().get(name);
+    }
 
 
 }
