@@ -28,8 +28,19 @@ public class Sql {
 
     public Sql appendIn(String sql, Object... args){
         sb.append(sql.replace("?", replaceQuestionMark(args))).append(" ");
-        params.clear(); // 이미 parameter 바인딩 했으므로  list 초기화
+        params.clear(); // 이미 parameter 바인딩 했으므로 list 초기화
         return this;
+    }
+
+    private String replaceQuestionMark(Object[] args) {
+        StringBuilder sb = new StringBuilder();
+        for(int i=0; i< args.length; i++){
+            sb.append("'").append(args[i].toString()).append("'");
+            if(i < args.length - 1){
+                sb.append(", ");
+            }
+        }
+        return sb.toString();
     }
 
     private String reformat(Object param) {
@@ -57,18 +68,7 @@ public class Sql {
         return sb.toString();
     }
 
-    private String replaceQuestionMark(Object[] args) {
-        StringBuilder sb = new StringBuilder();
-        for(int i=0; i< args.length; i++){
-            sb.append("'").append(args[i].toString()).append("'");
-            if(i < args.length - 1){
-                sb.append(", ");
-            }
-        }
-        return sb.toString();
-    }
-
-    public Long insert() {
+    private void showQuery(){
         String sql = sb.toString().trim();
 
         if (devMode) {
@@ -77,6 +77,12 @@ public class Sql {
             String formattedSql = replaceWithParams(sql, params.toArray());
             System.out.println(formattedSql);
         }
+    }
+
+    public long insert() {
+        String sql = sb.toString().trim();
+
+        showQuery();
 
         try {
             PreparedStatement preparedStatement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
@@ -107,6 +113,8 @@ public class Sql {
     public long update() {
         String sql = sb.toString().trim();
 
+        showQuery();
+
         try {
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
@@ -125,6 +133,8 @@ public class Sql {
     public long delete() {
         String sql = sb.toString().trim();
 
+        showQuery();
+
         try {
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
@@ -141,6 +151,8 @@ public class Sql {
 
     public List<Map<String, Object>> selectRows() {
         String sql = sb.toString().trim();
+
+        showQuery();
 
         try {
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
@@ -173,6 +185,8 @@ public class Sql {
     public <T> List<T> selectRows(Class<T> clazz) {
         String sql = sb.toString().trim();
 
+        showQuery();
+
         try {
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
@@ -184,6 +198,7 @@ public class Sql {
 
             while (rs.next()) {
                 T t = clazz.getDeclaredConstructor().newInstance();
+
                 for (int i = 1; i <= count; i++) {
                     String columnName = metaData.getColumnName(i);
                     Object value = rs.getObject(i);
@@ -207,6 +222,8 @@ public class Sql {
 
     public Map<String, Object> selectRow() {
         String sql = sb.toString().trim();
+
+        showQuery();
 
         try {
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
@@ -239,6 +256,8 @@ public class Sql {
     public <T> T selectRow(Class<T> clazz) {
         String sql = sb.toString().trim();
 
+        showQuery();
+
         try {
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
@@ -248,7 +267,6 @@ public class Sql {
 
             if (rs.next()) {
                 T t = clazz.getDeclaredConstructor().newInstance();
-
                 for (int i = 1; i <= count; i++) {
                     String columName = metaData.getColumnName(i);
                     Object value = rs.getObject(i);
@@ -272,6 +290,8 @@ public class Sql {
     public LocalDateTime selectDatetime() {
         String sql = sb.toString().trim();
 
+        showQuery();
+
         try {
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
@@ -289,6 +309,8 @@ public class Sql {
 
     public Long selectLong() {
         String sql = sb.toString().trim();
+
+        showQuery();
 
         try {
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
@@ -312,6 +334,8 @@ public class Sql {
     public String selectString() {
         String sql = sb.toString().trim();
 
+        showQuery();
+
         try {
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
@@ -329,6 +353,8 @@ public class Sql {
     public Boolean selectBoolean() {
         String sql = sb.toString().trim();
 
+        showQuery();
+
         try {
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
@@ -345,6 +371,8 @@ public class Sql {
 
     public List<Long> selectLongs() {
         String sql = sb.toString().trim();
+
+        showQuery();
 
         try {
             PreparedStatement preparedStatement = connection.prepareStatement(sql);

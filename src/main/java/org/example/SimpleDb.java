@@ -59,6 +59,7 @@ public class SimpleDb {
         Connection connection = getConnection();
         return new Sql(connection, devMode);
     }
+
     public void closeConnection() {
         try {
             Connection connection = getConnection();
