@@ -236,4 +236,23 @@ public class SimpleDbTest {
         assertThat(title).isEqualTo("제목1");
     }
 
+    @Test
+    @DisplayName("SELECT Boolean 테스트")
+    public void selectBoolean() {
+        Sql sql = simpleDb.genSql();
+        /*
+        == rawSql ==
+        SELECT isBlind
+        FROM article
+        WHERE id = 1
+        */
+        sql.append("SELECT isBlind ")
+            .append("FROM article ")
+            .append("WHERE id = 1");
+
+        Boolean isBlind = sql.selectBoolean();
+
+        assertThat(isBlind).isEqualTo(false);
+    }
+
 }

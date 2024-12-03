@@ -175,6 +175,8 @@ public class Sql {
                     result = type.cast(resultSet.getString(columnName));
                 } else if(type == LocalDateTime.class) {
                     result = type.cast(resultSet.getTimestamp(columnName).toLocalDateTime());
+                } else if (type == Boolean.class) {
+                    result = type.cast(resultSet.getBoolean(columnName));
                 }
             }
             statement.close();
@@ -184,4 +186,7 @@ public class Sql {
         return result;
     }
 
+    public Boolean selectBoolean() {
+        return selectValue("isBlind", Boolean.class);
+    }
 }
