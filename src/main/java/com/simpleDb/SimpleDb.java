@@ -181,10 +181,38 @@ public class SimpleDb {
 	}
 
 	public String runSelectString(String sql) {
-		Map<String, Object> stringObjectMap = runSelectRow(sql);
+		Map<String, Object> result = runSelectRow(sql);
 
 		String[] split = sql.split(" ");
 
-		return (String) stringObjectMap.get(split[1]);
+		if (!result.containsKey(split[1])) {
+			throw new RuntimeException("해당 데이터가 존재하지 않습니다.");
+		}
+
+		return (String) result.get(split[1]);
+	}
+
+	public Boolean runSelectBoolean(String sql) {
+		Map<String, Object> result = runSelectRow(sql);
+		StringBuilder sb = new StringBuilder();
+
+		String[] split = sql.split(" ");
+
+		for (int i = 1; i < split.length; i++) {
+			if (split[i].equals("FROM")) {
+				break;
+			}
+			sb.append(split[i] + " ");
+		}
+
+		sb.deleteCharAt(sb.length() - 1);
+
+		if (!result.containsKey(sb.toString())) {
+			throw new RuntimeException("해당 테이터가 존재하지 않습니다.");
+		}
+
+		Number number = (Number)result.get(sb.toString());
+
+		return number.intValue() == 1;
 	}
 }
