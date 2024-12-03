@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
 
 public class Sql {
     StringBuilder sql = new StringBuilder();
@@ -78,19 +79,41 @@ public class Sql {
     long delete(){
         return runQeury();
     }
+    Map<String,String> getColumnName(PreparedStatement stmt ) throws SQLException {
+        Map<String,String> result = new HashMap<>();
+        ResultSetMetaData metaData = stmt.getMetaData();
+        int count = metaData.getColumnCount();
+        for(;count >0; count--) {
+            result.put(metaData.getColumnName(count),metaData.getColumnTypeName(count));
+        }
+
+        return result;
+    }
+    Object getColumnContent(ResultSet rs,String name,String type) throws SQLException {
+            if(type.contains("INT"))
+                return rs.getLong(name);
+            if(type.equals("DATETIME") || type.equals("NOW()") ) {
+                return rs.getTimestamp(name).toLocalDateTime();
+            }
+            if(type.contains("VARCHAR") || type.equals("TEXT"))
+                return rs.getString(name);
+            if(type.contains("BIT"))
+                return rs.getBoolean(name);
+            return null;
+
+    }
     Object select(){
         List<Map<String, Object>> result = new ArrayList<>();
         try (PreparedStatement stmt = con.prepareStatement(sql.toString())) {
             //결과를 담을 ResultSet 생성 후 결과 담기
             ResultSet rs = stmt.executeQuery();
+            Map<String,String> map = getColumnName(stmt);
             while(rs.next()) {
                 Map<String,Object> save = new HashMap<>();
-                save.put("id",rs.getLong("id"));
-                save.put("title",rs.getString("title"));
-                save.put("body",rs.getString("body"));
-                save.put("createdDate",convertDateToLocalDataTime(rs.getDate("createdDate")));
-                save.put("modifiedDate",convertDateToLocalDataTime(rs.getDate("modifiedDate")));
-                save.put("isBlind",rs.getBoolean("isBlind"));
+                for(String name : map.keySet()){
+                    save.put(name,getColumnContent(rs,name, map.get(name)));
+
+                }
                 result.add(save);
             }
         } catch (SQLException e) {
@@ -106,9 +129,11 @@ public class Sql {
     Map<String, Object> selectRow(){
         return (Map<String, Object>)select();
     }
-
-    LocalDateTime convertDateToLocalDataTime(Date d){
-        return new java.sql.Timestamp(d.getTime()).toLocalDateTime();
+    LocalDateTime selectDatetime(){
+        String name = "";
+        for(String i : selectRow().keySet())
+            name = i;
+        return (LocalDateTime) selectRow().get(name);
     }
 
 
