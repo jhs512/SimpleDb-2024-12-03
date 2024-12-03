@@ -1,6 +1,7 @@
 package org.example;
 
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.*;
 
 public class Sql {
@@ -128,6 +129,22 @@ public class Sql {
             }
 
             return result;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public LocalDateTime selectDatetime() {
+        try {
+            PreparedStatement pstmt = conn.prepareStatement(query);
+            setParams(pstmt);
+            clearQuery();
+
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getTimestamp(1).toLocalDateTime();
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
