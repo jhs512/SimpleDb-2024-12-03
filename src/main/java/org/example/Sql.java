@@ -149,6 +149,18 @@ public class Sql {
         );
     }
 
+    public String selectString() {
+        return selectValue(query, resultSet ->
+                resultSet.getString(1)
+        );
+    }
+
+    public Boolean selectBoolean() {
+        return selectValue(query, resultSet ->
+                resultSet.getBoolean(1)
+        );
+    }
+
     @Override
     public String toString() {
         return query;
