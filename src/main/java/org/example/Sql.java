@@ -3,6 +3,8 @@ package org.example;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 public class Sql {
     private String query = "";
@@ -136,40 +138,41 @@ public class Sql {
     }
 
     public LocalDateTime selectDatetime() {
-        try {
-            PreparedStatement pstmt = conn.prepareStatement(query);
-            setParams(pstmt);
-            clearQuery();
-
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                return rs.getTimestamp(1).toLocalDateTime();
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return null;
+        return selectValue(query, resultSet ->
+                resultSet.getTimestamp(1).toLocalDateTime()
+        );
     }
 
     public Long selectLong() {
-        try {
-            PreparedStatement pstmt = conn.prepareStatement(query);
-            setParams(pstmt);
-            clearQuery();
-
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                return rs.getLong(1);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return null;
+        return selectValue(query, resultSet ->
+            resultSet.getLong(1)
+        );
     }
 
     @Override
     public String toString() {
         return query;
+    }
+
+    private <T> T selectValue(String query, ResultSetExtractor<T> extractor) {
+        try {
+            PreparedStatement pstmt = conn.prepareStatement(query);
+            setParams(pstmt);
+            clearQuery();
+
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                try {
+                    return extractor.extract(rs);
+                } catch (SQLException e) {
+
+                }
+
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     private void setParams(PreparedStatement pstmt) throws SQLException {
@@ -181,5 +184,10 @@ public class Sql {
     private void clearQuery() {
         query = "";
         params.clear();
+    }
+
+    @FunctionalInterface
+    private interface ResultSetExtractor<T> {
+        T extract(ResultSet rs) throws SQLException;
     }
 }
