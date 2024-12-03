@@ -1,9 +1,7 @@
 package org.example;
 
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 public class Sql {
     private String query = "";
@@ -83,6 +81,33 @@ public class Sql {
             e.printStackTrace();
         }
         return -1;
+    }
+
+    public List<Map<String, Object>> selectRows() {
+        try {
+            PreparedStatement pstmt = conn.prepareStatement(query);
+            setParams(pstmt);
+            clearQuery();
+
+            ResultSet rs = pstmt.executeQuery();
+            List<Map<String, Object>> results = new ArrayList<>();
+            while (rs.next()) {
+                Map<String, Object> result = new HashMap<>();
+                result.put("id", rs.getLong("id"));
+                result.put("title", rs.getString("title"));
+                result.put("body", rs.getString("body"));
+                result.put("createdDate", rs.getTimestamp("createdDate").toLocalDateTime());
+                result.put("modifiedDate", rs.getTimestamp("modifiedDate").toLocalDateTime());
+                result.put("isBlind", rs.getBoolean("isBlind"));
+
+                results.add(result);
+            }
+
+            return results;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     @Override
