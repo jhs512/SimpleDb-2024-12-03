@@ -7,6 +7,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -158,5 +159,12 @@ public class SimpleDb {
 		PreparedStatement preparedStatement = connection.prepareStatement(sql);
 		ResultSet resultSet = preparedStatement.executeQuery(sql);
 		return resultSet;
+	}
+
+	public LocalDateTime runSelectDatetime(String sql) {
+		Map<String, Object> result = runSelectRow(sql);
+
+		return result.containsKey("NOW()") ?
+			LocalDateTime.parse(result.get("NOW()").toString()) : null;
 	}
 }
