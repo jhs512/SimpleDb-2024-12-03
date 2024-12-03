@@ -31,9 +31,16 @@ public class Sql {
         return this;
     }
 
-    public Sql appendIn(String query, Object ... params) {
-        String placeHolders = String.join(",",Collections.nCopies(params.length, "?"));
-        query = query.replace("(?)", "(" + placeHolders + ")");
+    public Sql appendIn(String query, Object param) {
+        sqlBuilder.append(" ").append(query);
+        this.params.addAll(Arrays.asList(params));
+        return this;
+    }
+
+    public Sql appendIn(String query, Object... params) {
+        String placeHolders = String.join(", ",Collections.nCopies(params.length, "?"));
+        query = query.replace("?", placeHolders);
+
         sqlBuilder.append(" ").append(query);
         this.params.addAll(Arrays.asList(params));
         return this;
@@ -239,4 +246,30 @@ public class Sql {
         }
     }
 
+    public List<Long> selectLongs() {
+        try {
+            PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString());
+
+            // 파라미터 있으면 추가
+            for(int i=1;i<=params.size();i++){
+                ps.setObject(i, params.get(i-1));
+            }
+
+            loggingSql(ps);
+            ResultSet rs = ps.executeQuery();
+
+            List<Long> results = new ArrayList<>();
+
+            while(rs.next()){
+                results.add(rs.getLong(1));
+            }
+
+            return results;
+        }catch(SQLException e){
+            e.printStackTrace();
+        }
+
+        // null
+        return List.of();
+    }
 }
