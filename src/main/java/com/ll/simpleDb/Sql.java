@@ -7,6 +7,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,40 +20,12 @@ public class Sql {
         this.connection = connection;
     }
     private final StringBuilder query = new StringBuilder();
-    private final ArrayList<String> params = new ArrayList<>();
+    private final ArrayList<Object> params = new ArrayList<>();
 
-    public Sql append(String str) {
+    public Sql append(String str, Object... values) {
         query.append(str);
-        return this;
-    }
-
-    public Sql append(String str, String value) {
-        query.append(str);
-        params.add(value);
-        return this;
-    }
-
-    public Sql append(String str, int value, int value2, int value3) {
-        query.append(str);
-        params.add(value+"");
-        params.add(value2+"");
-        params.add(value3+"");
-        return this;
-    }
-
-    public Sql append(String str, int value, int value2, int value3, int value4) {
-        query.append(str);
-        params.add(value+"");
-        params.add(value2+"");
-        params.add(value3+"");
-        params.add(value4+"");
-        return this;
-    }
-
-    public Sql append(String str, int value, int value2) {
-        query.append(str);
-        params.add(value+"");
-        params.add(value2+"");
+        // Object 타입으로 값을 추가
+        params.addAll(Arrays.asList(values));
         return this;
     }
 
@@ -65,7 +38,7 @@ public class Sql {
             IntStream.range(0, params.size())
                 .forEach(i -> {
                     try {
-                        statement.setString(i + 1, params.get(i));
+                        statement.setString(i + 1, (String) params.get(i));
                     } catch (SQLException e) {
                         throw new RuntimeException(e);
                     }
@@ -104,10 +77,10 @@ public class Sql {
             IntStream.range(0, params.size())
                 .forEach(i -> {
                     try {
-                        if (isNumber(params.get(i))) {
-                            statement.setInt(i + 1, Integer.parseInt(params.get(i)));
+                        if (params.get(i) instanceof Integer) {
+                            statement.setInt(i + 1, (Integer) params.get(i));
                         } else {
-                            statement.setString(i + 1, params.get(i));
+                            statement.setString(i + 1, (String) params.get(i));
                         }
                     } catch (SQLException e) {
                         throw new RuntimeException(e);
@@ -122,16 +95,6 @@ public class Sql {
 
         return result;
     }
-
-    private boolean isNumber(String target) {
-        try {
-            Integer.parseInt(target);
-            return true;
-        } catch (NumberFormatException e) {
-            return false;
-        }
-    }
-
 
     public List<Map<String, Object>> selectRows() {
         List<Map<String, Object>> rows = new ArrayList<>();
@@ -177,10 +140,10 @@ public class Sql {
             IntStream.range(0, params.size())
                 .forEach(i -> {
                     try {
-                        if (isNumber(params.get(i))) {
-                            statement.setInt(i + 1, Integer.parseInt(params.get(i)));
+                        if (params.get(i) instanceof Integer) {
+                            statement.setInt(i + 1, (Integer) params.get(i));
                         } else {
-                            statement.setString(i + 1, params.get(i));
+                            statement.setString(i + 1, (String) params.get(i));
                         }
                     } catch (SQLException e) {
                         throw new RuntimeException(e);
