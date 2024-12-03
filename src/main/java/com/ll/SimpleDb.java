@@ -56,7 +56,11 @@ public class SimpleDb {
         }
     }
 
-    public void close(){
+    public Sql genSql() {
+        return new Sql(conn, this.devMode);
+    }
+
+    public void closeConnection() {
         if (conn != null){
             try{
                 conn.close();
@@ -64,9 +68,5 @@ public class SimpleDb {
                 e.printStackTrace();
             }
         }
-    }
-
-    public Sql genSql() {
-        return new Sql(conn, this.devMode);
     }
 }
