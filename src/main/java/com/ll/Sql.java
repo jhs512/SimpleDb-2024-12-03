@@ -1,5 +1,6 @@
 package com.ll;
 
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -24,4 +25,6 @@ public interface Sql {
     Boolean selectBoolean();
 
     List<Long> selectLongs();
+
+    void close() throws SQLException;
 }

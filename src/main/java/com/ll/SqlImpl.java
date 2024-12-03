@@ -203,4 +203,10 @@ public class SqlImpl implements Sql {
                 .map((o-> (Long)o))
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public void close() throws SQLException {
+        conn.close();
+        conn = null;
+    }
 }
