@@ -17,12 +17,16 @@ public class Sql {
     private boolean devMode;
     private ObjectMapper objectMapper;
 
-    public Sql(Connection conn, boolean devMode) {
+    private SimpleDb dataSource;
+
+
+    public Sql(Connection conn, boolean devMode, SimpleDb dataSource) {
         this.sqlBuilder = new StringBuilder();
         this.conn = conn;
         this.params = new ArrayList<>();
         this.devMode = devMode;
         objectMapper = new ObjectMapper();
+        this.dataSource = dataSource;
     }
 
     // 단순 쿼리 더하기
@@ -219,32 +223,27 @@ public class Sql {
     }
 
     public Article selectRow(Class<Article> article){
-        try {
-            PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString());
-            loggingSql(ps);
-            ResultSet rs = ps.executeQuery();
+        String query = sqlBuilder.toString();
+            try (
+                Connection conn = dataSource.getConnection();
+                PreparedStatement ps = conn.prepareStatement(query);
 
-            while(rs.next()){
-                long id = rs.getLong("id");
-                String title = rs.getString("title");
-                String body = rs.getString("body");
-                LocalDateTime createdDate = rs.getTimestamp("createdDate").toLocalDateTime();
-                LocalDateTime modifiedDate = rs.getTimestamp("modifiedDate").toLocalDateTime();
-                boolean isBlind = rs.getBoolean("isBlind");
-                return new Article(
-                        id,
-                        title,
-                        body,
-                        createdDate,
-                        modifiedDate,
-                        isBlind
-                );
+                ResultSet rs = ps.executeQuery();
+            ){
+                loggingSql(ps);
+                if(rs.next()) {
+                    return new Article(
+                            rs.getLong("id"),
+                            rs.getString("title"),
+                            rs.getString("body"),
+                            rs.getTimestamp("createdDate").toLocalDateTime(),
+                            rs.getTimestamp("modifiedDate").toLocalDateTime(),
+                            rs.getBoolean("isBlind")
+                    );
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
             }
-
-            return null;
-        }catch(SQLException e){
-            e.printStackTrace();
-        }
         // 데이터 없음
         return null;
     }

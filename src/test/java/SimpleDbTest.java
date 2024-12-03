@@ -463,24 +463,21 @@ public class SimpleDbTest {
                 latch.countDown();
             }
         };
+
+        // 쓰레드 풀에서 쓰레드를 할당받아 작업을 실행합니다.
+        for (int i = 0; i < numberOfThreads; i++) {
+            executorService.submit(task);
+        }
+
+        // 모든 작업이 완료될 때까지 대기하거나, 최대 10초 동안 대기합니다.
+        latch.await(10, TimeUnit.SECONDS);
+
+        // 쓰레드 풀을 종료시킵니다.
+        executorService.shutdown();
+
+        // 성공 카운터가 쓰레드 수와 동일한지 확인합니다.
+        assertThat(successCounter.get()).isEqualTo(numberOfThreads);
     }
-
-
-//
-//        // 쓰레드 풀에서 쓰레드를 할당받아 작업을 실행합니다.
-//        for (int i = 0; i < numberOfThreads; i++) {
-//            executorService.submit(task);
-//        }
-//
-//        // 모든 작업이 완료될 때까지 대기하거나, 최대 10초 동안 대기합니다.
-//        latch.await(10, TimeUnit.SECONDS);
-//
-//        // 쓰레드 풀을 종료시킵니다.
-//        executorService.shutdown();
-//
-//        // 성공 카운터가 쓰레드 수와 동일한지 확인합니다.
-//        assertThat(successCounter.get()).isEqualTo(numberOfThreads);
-//    }
 //
 //    @Test
 //    @DisplayName("rollback")
