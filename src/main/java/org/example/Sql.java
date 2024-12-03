@@ -97,6 +97,28 @@ public class Sql {
         return articles;
     }
 
+    public List<Article> selectRows(Class<Article> articleClass) {
+        List<Article> articles = new ArrayList<>();
+        try {
+            ResultSet rs = selectExcute();
+
+            while (rs.next()) {
+                articles.add(new Article(rs.getLong("id"),
+                        rs.getString("title"),
+                        rs.getString("body"),
+                        rs.getTimestamp("createdDate").toLocalDateTime(),
+                        rs.getTimestamp("modifiedDate").toLocalDateTime(),
+                        rs.getBoolean("isBlind")));
+            }
+
+            preparedStatement.close();
+            rs.close();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return articles;
+    }
+
     public Map<String, Object> selectRow() {
         Map<String, Object> article = new HashMap<>();
 
