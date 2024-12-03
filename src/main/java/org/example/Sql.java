@@ -110,6 +110,30 @@ public class Sql {
         return null;
     }
 
+    public Map<String, Object> selectRow() {
+        try {
+            PreparedStatement pstmt = conn.prepareStatement(query);
+            setParams(pstmt);
+            clearQuery();
+
+            ResultSet rs = pstmt.executeQuery();
+            Map<String, Object> result = new HashMap<>();
+            if (rs.next()) {
+                result.put("id", rs.getLong("id"));
+                result.put("title", rs.getString("title"));
+                result.put("body", rs.getString("body"));
+                result.put("createdDate", rs.getTimestamp("createdDate").toLocalDateTime());
+                result.put("modifiedDate", rs.getTimestamp("modifiedDate").toLocalDateTime());
+                result.put("isBlind", rs.getBoolean("isBlind"));
+            }
+
+            return result;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     @Override
     public String toString() {
         return query;
