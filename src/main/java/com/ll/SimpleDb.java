@@ -94,4 +94,29 @@ public class SimpleDb {
             }
         }
     }
+
+    public void startTransaction() {
+        if (conn != null){
+            try{
+                conn.setAutoCommit(false);
+
+            }catch(SQLException e1){
+                try{
+                    conn.rollback();
+                }catch (SQLException e2){
+                    e2.printStackTrace();
+                }
+            }
+        }
+    }
+
+    public void rollback() {
+        if(conn != null){
+            try{
+                conn.rollback();
+            }catch(SQLException ex){
+                ex.printStackTrace();
+            }
+        }
+    }
 }

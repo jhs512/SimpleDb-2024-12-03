@@ -66,6 +66,7 @@ public class Sql {
             }
             loggingSql(ps);
             int id = ps.executeUpdate();
+
             ps.close();
 
             return id;
