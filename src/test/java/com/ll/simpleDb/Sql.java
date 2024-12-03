@@ -1,11 +1,9 @@
 package com.ll.simpleDb;
 
+import java.security.Key;
 import java.sql.*;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.IntStream;
 
 public class Sql {
@@ -129,18 +127,20 @@ public class Sql {
     Map<String, Object> selectRow(){
         return (Map<String, Object>)select();
     }
-    LocalDateTime selectDatetime(){
+    String getRowColumnName(Set a){
         String name = "";
         for(String i : selectRow().keySet())
             name = i;
-        return (LocalDateTime) selectRow().get(name);
+        return name;
+    }
+    LocalDateTime selectDatetime(){
+        return (LocalDateTime) selectRow().get(getRowColumnName(selectRow().keySet()));
     }
     long selectLong(){
-        String name = "";
-        for(String i : selectRow().keySet())
-            name = i;
-        return (long) selectRow().get(name);
+        return (long) selectRow().get(getRowColumnName(selectRow().keySet()));
     }
-
+    String selectString(){
+        return (String) selectRow().get(getRowColumnName(selectRow().keySet()));
+    }
 
 }
