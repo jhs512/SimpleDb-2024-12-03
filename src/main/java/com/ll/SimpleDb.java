@@ -80,7 +80,7 @@ public class SimpleDb implements DataSource {
             try{
                 conn.close();
             }catch(SQLException e){
-                e.printStackTrace();
+                throw new RuntimeException("연결 종료 실패 : " + e);
             }
         }
     }
@@ -90,13 +90,8 @@ public class SimpleDb implements DataSource {
         if (conn != null){
             try{
                 conn.setAutoCommit(false);
-
-            }catch(SQLException e1){
-                try{
-                    conn.rollback();
-                }catch (SQLException e2){
-                    e2.printStackTrace();
-                }
+            }catch(SQLException e){
+                throw new RuntimeException("트랜잭션 시작 실패 : " + e);
             }
         }
     }
@@ -106,8 +101,8 @@ public class SimpleDb implements DataSource {
         if(conn != null){
             try{
                 conn.rollback();
-            }catch(SQLException ex){
-                ex.printStackTrace();
+            }catch(SQLException e){
+                throw new RuntimeException("롤백 실패 : " + e);
             }
         }
     }
@@ -117,7 +112,7 @@ public class SimpleDb implements DataSource {
         try {
             conn.commit();
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("커밋 실패 : " + e);
         }
     }
 }

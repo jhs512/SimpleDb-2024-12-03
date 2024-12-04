@@ -26,7 +26,7 @@ public class Sql {
         this.conn = conn;
         this.params = new ArrayList<>();
         this.devMode = devMode;
-        
+
         // Java Date / Time 지원 모듈 등록
         objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
         this.dataSource = dataSource;
@@ -90,13 +90,10 @@ public class Sql {
             loggingSql(ps);
             return ps.executeUpdate();
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         } finally {
             params.clear();
         }
-
-        // 실패
-        return -1L;
     }
 
     /*
@@ -114,17 +111,15 @@ public class Sql {
 
             return rs;
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
-        // 실패
-        return -1L;
     }
 
     /*
-    * SQL DELETE 함수
-    *
-    * @return   affected Rows
-    * */
+     * SQL DELETE 함수
+     *
+     * @return   affected Rows
+     * */
     public long delete() {
         try {
             PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString());
@@ -135,15 +130,12 @@ public class Sql {
             loggingSql(ps);
             int rs = ps.executeUpdate();
             ps.close();
-
             return rs;
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         } finally {
             params.clear();
         }
-
-        return -1;
     }
 
     public List<Map<String, Object>> selectRows() {
@@ -163,15 +155,18 @@ public class Sql {
                 row.put("isBlind", rs.getBoolean("isBlind"));
                 results.add(row);
             }
-
             return results;
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
-        // 데이터 없음
-        return List.of();
     }
 
+    /*
+     * SELECT 수행 후 결과 값을 클래스에 매핑해 리스트로 반환
+     *
+     * @param  class<T>  클래스 타입
+     * @return           List<T>
+     * */
     public <T> List<T> selectRows(Class<T> tClass) {
         try {
             PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString());
@@ -185,7 +180,7 @@ public class Sql {
                 int columnCount = metaData.getColumnCount();
 
                 // 컬럼 데이터를 ObjectNode에 추가
-                for (int i = 0; i < columnCount; i++) {
+                for (int i = 1; i <= columnCount; i++) {
                     String columnName = metaData.getColumnLabel(i);
                     Object value = rs.getObject(i);
                     node.putPOJO(columnName, value);
@@ -194,109 +189,99 @@ public class Sql {
                 // ObjectNode를 지정된 타입으로 매핑
                 T row = objectMapper.convertValue(node, tClass);
                 results.add(row);
-//                long id = rs.getLong("id");
-//                String title = rs.getString("title");
-//                String body = rs.getString("body");
-//                LocalDateTime createdDate = rs.getTimestamp("createdDate").toLocalDateTime();
-//                LocalDateTime modifiedDate = rs.getTimestamp("modifiedDate").toLocalDateTime();
-//                boolean isBlind = rs.getBoolean("isBlind");
-//                results.add(new Article(
-//                        id,
-//                        title,
-//                        body,
-//                        createdDate,
-//                        modifiedDate,
-//                        isBlind
-//                ));
             }
 
             return results;
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
-        // null
-        return List.of();
     }
 
+    /*
+     * 단 건의 SELECT 결과를 Map으로 변환 해 반환
+     *
+     * @return   Map<String, Object>
+     * */
     public Map<String, Object> selectRow() {
         try {
             PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString());
             loggingSql(ps);
             ResultSet rs = ps.executeQuery();
-            Map<String, Object> results = new HashMap<>();
+            Map<String, Object> result = new HashMap<>();
 
-            while (rs.next()) {
-                results.put("id", rs.getLong("id"));
-                results.put("title", rs.getString("title"));
-                results.put("body", rs.getString("body"));
-                results.put("createdDate", rs.getTimestamp("createdDate").toLocalDateTime());
-                results.put("modifiedDate", rs.getTimestamp("modifiedDate").toLocalDateTime());
-                results.put("isBlind", rs.getBoolean("isBlind"));
+            if (rs.next()) {
+                ResultSetMetaData metaData = rs.getMetaData();
+                int columnCount = metaData.getColumnCount();
+
+                // 컬럼 데이터를 Map 추가
+                for (int i = 1; i <= columnCount; i++) {
+                    String columnName = metaData.getColumnLabel(i);
+                    Object value = rs.getObject(i);
+                    result.put(columnName, value);
+                }
             }
 
-            return results;
+            return result;
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
-        // 데이터 없음
-        return Map.of();
     }
 
     /*
      * 단 건의 ROW 조회 후, 클래스 타입으로 변환 후 반환
-     *
+     * 멀티스레딩 가능
      * @param  Class<T> 클래스 타입 정보
      * @return          클래스
      *
      * */
     public <T> T selectRow(Class<T> tClass) {
         String query = sqlBuilder.toString();
-        try (
-                Connection conn = dataSource.getConnection();
-                PreparedStatement ps = conn.prepareStatement(query);
-
-                ResultSet rs = ps.executeQuery();
-        ) {
+        try {
+            PreparedStatement ps = conn.prepareStatement(query);
+            ResultSet rs = ps.executeQuery();
             loggingSql(ps);
+
             if (rs.next()) {
-                return (T) new Article(
-                        rs.getLong("id"),
-                        rs.getString("title"),
-                        rs.getString("body"),
-                        rs.getTimestamp("createdDate").toLocalDateTime(),
-                        rs.getTimestamp("modifiedDate").toLocalDateTime(),
-                        rs.getBoolean("isBlind")
-                );
+                ObjectNode node = objectMapper.createObjectNode();
+                ResultSetMetaData metaData = rs.getMetaData();
+                int columnCount = metaData.getColumnCount();
+
+                // 컬럼 데이터를 ObjectNode에 추가
+                for (int i = 1; i <= columnCount; i++) {
+                    String columnName = metaData.getColumnLabel(i);
+                    Object value = rs.getObject(i);
+                    node.putPOJO(columnName, value);
+                }
+                // ObjectNode를 지정된 타입으로 매핑
+                return objectMapper.convertValue(node, tClass);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
         // 데이터 없음
         return null;
     }
 
     /*
-    *
-    *
-    * */
+     * 칼럼의 시간 값을 읽어 LocalDateTime 으로 변환 후 반환
+     *
+     * @return   LocalDateTime
+     * */
     public LocalDateTime selectDatetime() {
-        try(
-            Statement stmt = conn.createStatement()
+        try (
+                Statement stmt = conn.createStatement()
         ) {
             loggingSql(stmt);
             ResultSet rs = stmt.executeQuery(sqlBuilder.toString());
             LocalDateTime result = null;
             while (rs.next()) {
-                 result = rs.getTimestamp("now()").toLocalDateTime();
+                result = rs.getTimestamp("now()").toLocalDateTime();
             }
             rs.close();
             return result;
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
-
-        // 실패
-        return null;
     }
 
     /*
@@ -305,8 +290,8 @@ public class Sql {
      * @return   칼럼의 Long 값
      * */
     public Long selectLong() {
-        try(
-            PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString())
+        try (
+                PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString())
         ) {
             addParams(ps);
             loggingSql(ps);
@@ -315,7 +300,7 @@ public class Sql {
                 return rs.getLong(1);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
         // 실패
         return 0L;
@@ -323,62 +308,59 @@ public class Sql {
 
 
     /*
-    * 단 건의 결과 행에서 특정 칼럼의 String 값 반환
-    *
-    * @return   칼럼의 String 값
-    * */
+     * 단 건의 결과 행에서 특정 칼럼의 String 값 반환
+     *
+     * @return   칼럼의 String 값
+     * */
     public String selectString() {
-        try(
-            PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString());
-            ResultSet rs = ps.executeQuery(sqlBuilder.toString());
-        ){
+        try (
+                PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString());
+                ResultSet rs = ps.executeQuery(sqlBuilder.toString());
+        ) {
             loggingSql(ps);
             if (rs.next()) {
                 return rs.getString("title");
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
-
         // 실패
         return null;
     }
 
     /*
-    * 단 건의 결과 행에서 boolean 값을 반환
-    *
-    * @return   칼럼의 boolean 값 (실패 시 false)
-    * */
+     * 단 건의 결과 행에서 boolean 값을 반환
+     *
+     * @return   칼럼의 boolean 값 (실패 시 false)
+     * */
     public Boolean selectBoolean() {
         try (
-            PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString());
-            ResultSet rs = ps.executeQuery(sqlBuilder.toString());
-        ){
+                PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString());
+                ResultSet rs = ps.executeQuery(sqlBuilder.toString());
+        ) {
             loggingSql(ps);
             boolean result = false;
-            
+
             if (rs.next()) {
                 result = rs.getBoolean(1);
             }
             rs.close();
             return result;
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
-        // sql 실패시 기본 값인 false 반환
-        return false;
     }
 
     /*
-    * 질의 결과 값(Long)들을 리스트에 담아 반환
-    *
-    * @return List<Long> long 리스트 반환
-    * */
+     * 질의 결과 값(Long)들을 리스트에 담아 반환
+     *
+     * @return List<Long> long 리스트 반환
+     * */
     public List<Long> selectLongs() {
-        try(
-            PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString());
-        ){
+        try (
+                PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString());
+        ) {
             addParams(ps);
             loggingSql(ps);
             ResultSet rs = ps.executeQuery();
@@ -392,18 +374,15 @@ public class Sql {
             rs.close();
             return results;
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
-
-        // null
-        return List.of();
     }
 
     /*
-    * 전달받은 PreparedStatement에 인자를 채우고 리스트를 초기화
-    *
-    * @param ps PreparedStatement
-    * */
+     * 전달받은 PreparedStatement에 인자를 채우고 리스트를 초기화
+     *
+     * @param ps PreparedStatement
+     * */
     private void addParams(PreparedStatement ps) throws SQLException {
         for (int i = 1; i <= params.size(); i++) {
             ps.setObject(i, params.get(i - 1));

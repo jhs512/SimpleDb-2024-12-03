@@ -21,7 +21,8 @@ public class Article {
     private LocalDateTime createdDate;
     private LocalDateTime modifiedDate;
 
-    //@JsonProperty("isBlind")
-    private boolean blind;
+    // TODO: 어노테이션 제거하면 왜 불일치 문제가 뜨지??
+    @JsonProperty("isBlind")
+    private boolean isBlind;
 
 }
