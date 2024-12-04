@@ -17,6 +17,16 @@ public class Sql {
         return this;
     }
 
+    public Sql appendIn(String query, Object... params) {
+        this.query += query + " ";
+
+        String placeholders = String.join(", ", Collections.nCopies(params.length, "?"));
+        this.query = this.query.replace("?", placeholders);
+        this.params.addAll(Arrays.asList(params));
+
+        return this;
+    }
+
     public Sql append(String query, Object... params) {
         this.query += query + " ";
         this.params.addAll(Arrays.asList(params));
