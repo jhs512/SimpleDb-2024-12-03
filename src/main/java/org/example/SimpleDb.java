@@ -38,6 +38,11 @@ public class SimpleDb {
         }
     }
 
+    public Sql genSql() {
+        connect();
+        return new Sql(conn);
+    }
+
     private void bindParameters(PreparedStatement pst, Object[] params) throws SQLException {
         for (int i = 0; i< params.length; i++) {
             pst.setObject(i+1, params[i]);
@@ -52,13 +57,10 @@ public class SimpleDb {
             try {
                 conn = DriverManager.getConnection(url, user, password);
             } catch (SQLException e) {
-                throw new IllegalArgumentException("Database Connection failed : ", e);
+                throw new RuntimeException("Database Connection failed : ", e);
             }
         }
     }
 
-    public Sql genSql() {
-        connect();
-        return new Sql(conn);
-    }
+
 }
