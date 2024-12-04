@@ -159,10 +159,13 @@ public class Sql {
         return ((List<Map<String, Object>>) select()).stream().map(Article::convert).toList();
     }
 
+    Article selectRow(Class article) {
+        return Article.convert((Map<String, Object>) select());
+    }
     Map<String, Object> selectRow() {
-
         return (Map<String, Object>) select();
     }
+
 
     String getRowColumnName(Set a) {
         String name = "";
