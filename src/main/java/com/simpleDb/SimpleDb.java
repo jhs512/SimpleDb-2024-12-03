@@ -158,8 +158,13 @@ public class SimpleDb {
 	private ResultSet excuteSelect(String sql, List<Object> params) throws SQLException {
 		Connection connection = createConnection();
 		PreparedStatement preparedStatement = connection.prepareStatement(sql);
+
 		setParams(params, preparedStatement);
 		ResultSet resultSet = preparedStatement.executeQuery();
+
+		preparedStatement.close();
+		connection.close();
+
 		return resultSet;
 	}
 
