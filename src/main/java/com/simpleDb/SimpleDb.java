@@ -230,4 +230,36 @@ public class SimpleDb {
 
 		return booleanValue;
 	}
+
+	public List<Long> runSelectLongs(String sql, List<Object> params) {
+		List<Map<String, Object>> mapList = runSelectRows(sql, params);
+
+		StringBuilder sb = new StringBuilder();
+
+		String[] split = sql.split(" ");
+
+		for (int i = 1; i < split.length; i++) {
+			if (split[i].equals("FROM")) {
+				break;
+			}
+			sb.append(split[i] + " ");
+		}
+
+		sb.deleteCharAt(sb.length() - 1);
+		String key = sb.toString();
+
+		List<Long> result = new LinkedList<>();
+
+		for (Map<String, Object> stringObjectMap : mapList) {
+			if (stringObjectMap.containsKey(key)) {
+				result.add((Long)stringObjectMap.get(key));
+			}
+		}
+
+		if (result.isEmpty()) {
+			throw new RuntimeException("해당 테이터가 없습니다.");
+		}
+
+		return result;
+	}
 }
