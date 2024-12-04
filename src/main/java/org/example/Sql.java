@@ -18,10 +18,8 @@ public class Sql {
     }
 
     public Sql appendIn(String query, Object... params) {
-        this.query += query + " ";
-
         String placeholders = String.join(", ", Collections.nCopies(params.length, "?"));
-        this.query = this.query.replace("?", placeholders);
+        this.query += query.replace("?", placeholders);
         this.params.addAll(Arrays.asList(params));
 
         return this;
@@ -68,6 +66,10 @@ public class Sql {
 
     public Boolean selectBoolean() {
         return db.selectBoolean(query, getParamsArray());
+    }
+
+    public List<Long> selectLongs() {
+        return db.selectLongs(query, getParamsArray());
     }
 
     private Object[] getParamsArray() {

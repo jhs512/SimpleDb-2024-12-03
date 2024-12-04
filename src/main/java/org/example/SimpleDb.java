@@ -141,6 +141,12 @@ public class SimpleDb {
         );
     }
 
+    public List<Long> selectLongs(String query, Object... params) {
+        return selectValues(query,
+                resultSet -> resultSet.getLong(1),
+                params);
+    }
+
     private <T> T selectValue(String query, ResultSetExtractor<T> extractor, Object... params) {
         try {
             PreparedStatement preparedStatement = genPreparedStatement(query, params);
@@ -149,6 +155,23 @@ public class SimpleDb {
             if (rs.next()) {
                 return extractor.extract(rs);
             }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private <T> List<T> selectValues(String query, ResultSetExtractor<T> extractor, Object... params) {
+        try {
+            PreparedStatement preparedStatement = genPreparedStatement(query, params);
+            List<T> values = new ArrayList<>();
+
+            ResultSet rs = preparedStatement.executeQuery();
+            while (rs.next()) {
+                values.add(extractor.extract(rs));
+            }
+
+            return values;
         } catch (SQLException e) {
             e.printStackTrace();
         }
