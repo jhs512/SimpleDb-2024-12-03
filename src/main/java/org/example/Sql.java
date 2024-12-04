@@ -65,4 +65,16 @@ public class Sql {
             throw new RuntimeException("Failed to execute SQL : " + sql + " Error : " + e.getMessage(), e);
         }
     }
+
+    public int delete() {
+
+        String sql = sb.toString();
+
+        try (PreparedStatement pst = conn.prepareStatement(sql);) {
+            bindParameters(pst, params);
+            return pst.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to execute SQL : " + sql + " Error : " + e.getMessage(), e);
+        }
+    }
 }
