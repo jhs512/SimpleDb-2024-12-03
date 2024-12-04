@@ -8,30 +8,21 @@ import java.sql.Statement;
 
 public class SimpleDb {
 
-    // MySQL 연결 객체
-    private static Connection connection = null;
+    private static final ThreadLocal<Connection> threadLocalConnection = ThreadLocal.withInitial(() -> {
+        try {
+            String url = "jdbc:mysql://localhost:3307/simpleDb__test";
+            return DriverManager.getConnection(url, "root", "lldj123414");
+        } catch (SQLException e) {
+            throw new RuntimeException("Error connecting to database", e);
+        }
+    });
 
     public SimpleDb(String ip, String user, String password, String databaseName) {
-        // MySQL 연결 URL
-        String url = "jdbc:mysql://" + ip + ":3307/" + databaseName;
 
-        try {
-            // MySQL JDBC 드라이버 로딩
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            // 데이터베이스 연결
-            connection = DriverManager.getConnection(url, user, password);
+    }
 
-            if(connection != null) {
-                System.out.println("Connected to database");
-            }
-        } catch (ClassNotFoundException e) {
-            System.out.println("JDBC Driver not found");
-            throw new RuntimeException(e);
-        } catch (SQLException e) {
-            System.out.println("Error connecting to database");
-            throw new RuntimeException(e);
-        }
-
+    private Connection getConnection() {
+        return threadLocalConnection.get();
     }
 
     public void setDevMode(boolean state) {
@@ -40,6 +31,7 @@ public class SimpleDb {
 
     public void run(String query) {
         try {
+            Connection connection = getConnection();
             Statement statement = connection.createStatement();
             statement.executeUpdate(query);
 
@@ -48,11 +40,11 @@ public class SimpleDb {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-
     }
 
     public void run(String query, String title, String body, boolean isBlind) {
         try {
+            Connection connection = getConnection();
             PreparedStatement statement = connection.prepareStatement(query);
             statement.setString(1, title);
             statement.setString(2, body);
@@ -71,10 +63,12 @@ public class SimpleDb {
         }
     }
 
-    public void close() {
+    public void closeConnection() {
         try {
+            Connection connection = getConnection();
             if(connection != null) {
                 connection.close();
+                threadLocalConnection.remove();
                 System.out.println("Connection closed");
             }
         } catch (SQLException e) {
@@ -83,6 +77,7 @@ public class SimpleDb {
     }
 
     public Sql genSql() {
-        return new Sql(connection);
+        return new Sql(getConnection());
     }
 }
+
