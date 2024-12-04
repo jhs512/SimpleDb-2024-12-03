@@ -62,22 +62,20 @@ public class Sql {
     }
 
     public int update() {
-        int affectedRows = excuteUpdateSql();
 
-        return affectedRows;
+        return excuteUpdate();
     }
 
     public int delete() {
-        int affectedRows = excuteUpdateSql();
 
-        return affectedRows;
+        return excuteUpdate();
     }
 
     public List<Map<String, Object>> selectRows() {
         List<Map<String, Object>> articles = new ArrayList<>();
 
         try {
-            ResultSet rs = excuteSelectOneRow();
+            ResultSet rs = excuteSelect();
 
             while (rs.next()) {
                 Map<String, Object> articleMap = new HashMap<>();
@@ -102,7 +100,7 @@ public class Sql {
     public List<Article> selectRows(Class<Article> articleClass) {
         List<Article> articles = new ArrayList<>();
         try {
-            ResultSet rs = excuteSelectOneRow();
+            ResultSet rs = excuteSelect();
 
             while (rs.next()) {
                 articles.add(new Article(rs.getLong("id"),
@@ -122,87 +120,30 @@ public class Sql {
     }
 
     public Map<String, Object> selectRow() {
-        Map<String, Object> article = new HashMap<>();
 
-        try {
-            ResultSet rs = excuteSelectOneRow();
-            rs.next();
-
-            article.put("id", rs.getLong("id"));
-            article.put("createdDate", rs.getTimestamp("createdDate").toLocalDateTime());
-            article.put("modifiedDate", rs.getTimestamp("modifiedDate").toLocalDateTime());
-            article.put("title", rs.getString("title"));
-            article.put("body", rs.getString("body"));
-            article.put("isBlind", rs.getBoolean("isBlind"));
-
-            preparedStatement.close();
-            rs.close();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-
-        return article;
+        return selectRows().getFirst();
     }
 
     public Article selectRow(Class<Article> articleClass) {
-        Article article = null;
-        try {
-            ResultSet rs = excuteSelectOneRow();
-            rs.next();
 
-            article = new Article(rs.getLong("id"),
-                    rs.getString("title"),
-                    rs.getString("body"),
-                    rs.getTimestamp("createdDate").toLocalDateTime(),
-                    rs.getTimestamp("modifiedDate").toLocalDateTime(),
-                    rs.getBoolean("isBlind"));
-
-            preparedStatement.close();
-            rs.close();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-        return article;
+        return selectRows(Article.class).getFirst();
     }
 
-
     public LocalDateTime selectDatetime() {
-        LocalDateTime localDateTime;
-        try {
-            ResultSet rs = excuteSelectOneRow();
-            rs.next();
-            localDateTime = rs.getTimestamp("NOW()").toLocalDateTime();
 
-            preparedStatement.close();
-            rs.close();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-
-        return localDateTime;
+        return (LocalDateTime) selectOneRowOneColumn();
     }
 
     public Long selectLong() {
-        long count;
-        try {
-            ResultSet rs = excuteSelectOneRow();
-            rs.next();
-            count = rs.getLong(rs.getMetaData().getColumnName(1));
 
-            preparedStatement.close();
-            rs.close();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-
-        return count;
+        return (long) selectOneRowOneColumn();
     }
 
     public List<Long> selectLongs() {
         List<Long> longs = new ArrayList<>();
 
         try {
-            ResultSet rs = excuteSelectOneRow();
+            ResultSet rs = excuteSelect();
             ResultSetMetaData rsmd = rs.getMetaData();
 
             while (rs.next()) {
@@ -219,39 +160,34 @@ public class Sql {
     }
 
     public String selectString() {
-        String title;
-        try {
-            ResultSet rs = excuteSelectOneRow();
-            rs.next();
-            title = rs.getString("title");
 
-            connection.close();
-            preparedStatement.close();
-            rs.close();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-
-        return title;
+        return selectOneRowOneColumn().toString();
     }
 
     public Boolean selectBoolean() {
-        boolean isBlind;
+        // toString적용 시 "1" or "0"으로 반환됨
+        return selectOneRowOneColumn().toString().equals("1");
+    }
+
+    private Object selectOneRowOneColumn() {
+        Object result = null;
         try {
-            ResultSet rs = excuteSelectOneRow();
+            ResultSet rs = excuteSelect();
             rs.next();
-            isBlind = rs.getBoolean(rs.getMetaData().getColumnName(1));
+
+            result = rs.getObject(1);
 
             preparedStatement.close();
             rs.close();
+            connection.close();
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            System.out.println("Sql단 오류 = " + e);
         }
 
-        return isBlind;
+        return result;
     }
 
-    private ResultSet excuteSelectOneRow() throws SQLException {
+    private ResultSet excuteSelect() throws SQLException {
         preparedStatement = connection.prepareStatement(sql.toString());
         for (int i = 0; i < params.size(); i++) {
             preparedStatement.setObject(i + 1, params.get(i));
@@ -262,7 +198,7 @@ public class Sql {
         return rs;
     }
 
-    private int excuteUpdateSql() {
+    private int excuteUpdate() {
         int affectedRows = 0;
         try {
             preparedStatement = connection.prepareStatement(sql.toString());
@@ -272,7 +208,7 @@ public class Sql {
             affectedRows = preparedStatement.executeUpdate();
             preparedStatement.close();
         } catch (SQLException e) {
-            System.out.println("sql 입력 오류 = " + e);
+            System.out.println("Sql단 오류 = " + e);
         }
 
         showSql();

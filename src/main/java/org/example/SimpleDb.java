@@ -6,11 +6,11 @@ import lombok.Setter;
 import java.sql.*;
 
 public class SimpleDb {
-    private final String host;
     private final String username;
     private final String password;
     private final String url;
-    @Getter @Setter
+    @Getter
+    @Setter
     private Boolean devMode = false;
     private Connection connection;
     private Connection connectionOfSql;
@@ -22,14 +22,13 @@ public class SimpleDb {
         int port = 3306;
 
         this.url = "jdbc:mysql://" + host + ":" + port + "/" + dbName;
-        this.host = host;
         this.username = username;
         this.password = password;
     }
 
     public Connection createConnection() {
         Connection conn = null;
-        try{
+        try {
             conn = DriverManager.getConnection(url, username, password);
             conn.setAutoCommit(autoCommit);
             return conn;
@@ -39,25 +38,19 @@ public class SimpleDb {
     }
 
     public void run(String sql, Object... params) {
-        try{
-            if(connection == null || connection.isClosed()) connection = createConnection();
+        try {
+            if (connection == null || connection.isClosed()) connection = createConnection();
+
             preparedStatement = connection.prepareStatement(sql);
 
-            for(int i =0; i<params.length; i++ ) {
-                preparedStatement.setObject(i+1, params[i]);
+            for (int i = 0; i < params.length; i++) {
+                preparedStatement.setObject(i + 1, params[i]);
             }
 
             preparedStatement.executeUpdate();
-
+            preparedStatement.close();
         } catch (SQLException e) {
-            System.out.println("SimpleDb에서 sql 오류 " + e);
-        } finally {
-            try{
-                preparedStatement.close();
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
-
+            System.out.println("SimpleDb단 sql 오류 " + e);
         }
     }
 
@@ -67,9 +60,11 @@ public class SimpleDb {
     }
 
     public void closeConnection() {
-        try{
+        try {
             this.connection.close();
-        } catch (SQLException e) {throw new RuntimeException();}
+        } catch (SQLException e) {
+            throw new RuntimeException();
+        }
     }
 
     public void startTransaction() {
@@ -77,7 +72,7 @@ public class SimpleDb {
     }
 
     public void rollback() {
-        try{
+        try {
             connectionOfSql.rollback();
             this.autoCommit = true;
         } catch (SQLException e) {
@@ -86,7 +81,7 @@ public class SimpleDb {
     }
 
     public void commit() {
-        try{
+        try {
             connectionOfSql.commit();
             this.autoCommit = true;
         } catch (SQLException e) {
