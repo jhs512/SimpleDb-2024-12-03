@@ -79,5 +79,29 @@ public class SimpleDb {
     public Sql genSql() {
         return new Sql(getConnection());
     }
+
+    // 트랜잭션 시작 메서드
+    public void startTransaction() {
+        try {
+            Connection connection = getConnection();
+            if (connection != null) {
+                connection.setAutoCommit(false);  // 자동 커밋을 끄고 트랜잭션을 시작
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    // 롤백 메서드
+    public void rollback() {
+        try {
+            Connection connection = getConnection();
+            if (connection != null) {
+                connection.rollback();  // 트랜잭션 롤백
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }
 

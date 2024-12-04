@@ -185,7 +185,8 @@ public class Sql {
         if(query.toString().contains("?")) {
             return executeQuery();
         }
-        return selectValue("id", Long.class);
+        String[] split = query.toString().split(" ");
+        return selectValue(split[1].trim(), Long.class);
     }
 
     private long executeQuery() {
