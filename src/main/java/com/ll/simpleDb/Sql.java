@@ -154,6 +154,28 @@ public class Sql {
         return articles;
     }
 
+    public Article selectRow(Class<Article> articleClass) {
+        Article article = null;
+        try {
+            PreparedStatement statement = connection.prepareStatement(query.toString());
+            ResultSet resultSet = statement.executeQuery();
+
+            while (resultSet.next()) {
+                article = new Article(
+                    resultSet.getLong("id"),
+                    resultSet.getString("title"),
+                    resultSet.getString("body"),
+                    resultSet.getBoolean("isBlind"),
+                    resultSet.getTimestamp("createdDate").toLocalDateTime(),
+                    resultSet.getTimestamp("modifiedDate").toLocalDateTime()
+                );
+            }
+            statement.close();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return article;
+    }
 
     public LocalDateTime selectDatetime() {
         return selectValue("now()", LocalDateTime.class);
