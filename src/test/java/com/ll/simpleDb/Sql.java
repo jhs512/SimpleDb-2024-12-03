@@ -8,8 +8,6 @@ import java.util.stream.IntStream;
 
 public class Sql {
     StringBuilder sql = new StringBuilder();
-    List<String> sqlContent = new ArrayList<>() {
-    };
     String url;
     String id;
     String pw;
@@ -42,34 +40,33 @@ public class Sql {
     }
 
     Sql append(String query, String content) {
+        query = query.replaceFirst("\\?","'"+content+"'");
         sql.append(query).append(" ");
-        sqlContent.add(content);
         return this;
     }
-
     Sql append(String query, int... contents) {
-        sql.append(query).append(" ");
         for (int content : contents)
-            sqlContent.add(content + "");
+            query = query.replaceFirst("\\?",content+"");
+        sql.append(query).append(" ");
         return this;
     }
 
-    PreparedStatement runStmtSetContent(PreparedStatement stmt) throws SQLException {
-        int n = 1;
-        for (String i : sqlContent) {
-            if (i.chars().allMatch(Character::isDigit))
-                stmt.setInt(n++, Integer.parseInt(i));
-            else
-                stmt.setString(n++, i);
+    Sql appendIn(String query, int... contents) {
+        StringBuilder save = new StringBuilder();
+        for(int i = 0; i< contents.length; i++) {
+            save.append(contents[i]);
+            if(i <contents.length-1) save.append(", ");
         }
-        return stmt;
+        query = query.replaceFirst("\\?",save.toString());
+        sql.append(query).append(" ");
+        return this;
     }
+
 
     long runQeury() {
         long id = -1;
         try {
             PreparedStatement stmt = con.prepareStatement(sql.toString());
-            stmt = runStmtSetContent(stmt);
             id = stmt.executeUpdate();
             stmt.close();
         } catch (SQLException e) {
@@ -128,8 +125,9 @@ public class Sql {
         List<Map<String, Object>> result = new ArrayList<>();
         try {
             PreparedStatement stmt = con.prepareStatement(sql.toString());
-            stmt = runStmtSetContent(stmt);
+            System.out.println(stmt.toString());
             ResultSet rs = stmt.executeQuery();
+
             Map<String, String> map = getColumnName(rs);
             while (rs.next()) {
                 Map<String, Object> save = new HashMap<>();
