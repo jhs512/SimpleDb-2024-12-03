@@ -15,6 +15,7 @@ public class Sql {
     String dbName;
     String port;
     Connection con;
+    boolean autoCommit = true;
 
     boolean isDev;
 
@@ -24,19 +25,36 @@ public class Sql {
         this.pw = pw;
         this.dbName = dbName;
         port = "3306";
+        autoCommit = true;
+        init();
+    }
+    Sql(String url, String id, String pw, String dbName,boolean autoCommit) {
+        this.url = url;
+        this.id = id;
+        this.pw = pw;
+        this.dbName = dbName;
+        port = "3306";
+        this.autoCommit = autoCommit;
         init();
     }
 
     void init() {
         try {
             con = DriverManager.getConnection("jdbc:mysql://" + url + ":" + port + "/" + dbName, id, pw);
+            con.setAutoCommit(false);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
-    void closeConnection(){
+    void commit() throws SQLException {
+        System.out.println(autoCommit);
+        if(autoCommit)
+            con.commit();
+    }
+
+    void rollback(){
         try {
-            con.close();
+            con.rollback();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -78,12 +96,23 @@ public class Sql {
         sql.append(query).append(" ");
         return this;
     }
+    Sql appendIn(String query, String... contents) {
+        StringBuilder save = new StringBuilder();
+        for(int i = 0; i< contents.length; i++) {
+            save.append("'"+contents[i]+"'");
+            if(i <contents.length-1) save.append(", ");
+        }
+        query = query.replaceFirst("\\?",save.toString());
+        sql.append(query).append(" ");
+        return this;
+    }
 
     long runQeury() {
         long id = -1;
         try {
             PreparedStatement stmt = con.prepareStatement(sql.toString());
             id = stmt.executeUpdate();
+            commit();
             stmt.close();
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -96,7 +125,6 @@ public class Sql {
     }
 
     long update() {
-
         return runQeury();
     }
 
@@ -142,7 +170,7 @@ public class Sql {
         try {
             PreparedStatement stmt = con.prepareStatement(sql.toString());
             ResultSet rs = stmt.executeQuery();
-
+            commit();
             Map<String, String> map = getColumnName(rs);
             while (rs.next()) {
                 Map<String, Object> save = new HashMap<>();
@@ -185,6 +213,7 @@ public class Sql {
     }
 
     long selectLong() {
+
         return (long) selectRow().get(getRowColumnName(selectRow().keySet()));
     }
 
