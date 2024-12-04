@@ -155,6 +155,9 @@ public class Sql {
     List<Map<String, Object>> selectRows() {
         return (List<Map<String, Object>>) select();
     }
+    List<Article> selectRows(Class article) {
+        return ((List<Map<String, Object>>) select()).stream().map(Article::convert).toList();
+    }
 
     Map<String, Object> selectRow() {
 
