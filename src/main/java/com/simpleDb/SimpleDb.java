@@ -109,11 +109,11 @@ public class SimpleDb {
 		return excute(sql, params, PreparedStatement.NO_GENERATED_KEYS);
 	}
 
-	public List<Map<String, Object>> runSelectRows(String sql) {
+	public List<Map<String, Object>> runSelectRows(String sql, List<Object> params) {
 		try {
 			List<Map<String, Object>> mapList = new LinkedList<>();
 
-			ResultSet resultSet = excuteSelect(sql);
+			ResultSet resultSet = excuteSelect(sql, params);
 
 			ResultSetMetaData metaData = resultSet.getMetaData();
 
@@ -133,11 +133,12 @@ public class SimpleDb {
 		}
 	}
 
-	public Map<String, Object> runSelectRow(String sql) {
+	public Map<String, Object> runSelectRow(String sql, List<Object> params) {
 		try {
-			ResultSet resultSet = excuteSelect(sql);
+			ResultSet resultSet = excuteSelect(sql, params);
 
 			ResultSetMetaData metaData = resultSet.getMetaData();
+			System.out.println("metaData = " + metaData);
 
 			Map<String, Object> map = new HashMap<>();
 
@@ -154,22 +155,23 @@ public class SimpleDb {
 
 	}
 
-	private ResultSet excuteSelect(String sql) throws SQLException {
+	private ResultSet excuteSelect(String sql, List<Object> params) throws SQLException {
 		Connection connection = createConnection();
 		PreparedStatement preparedStatement = connection.prepareStatement(sql);
-		ResultSet resultSet = preparedStatement.executeQuery(sql);
+		setParams(params, preparedStatement);
+		ResultSet resultSet = preparedStatement.executeQuery();
 		return resultSet;
 	}
 
-	public LocalDateTime runSelectDatetime(String sql) {
-		Map<String, Object> result = runSelectRow(sql);
+	public LocalDateTime runSelectDatetime(String sql, List<Object> params) {
+		Map<String, Object> result = runSelectRow(sql, params);
 
 		return result.containsKey("NOW()") ?
 			LocalDateTime.parse(result.get("NOW()").toString()) : null;
 	}
 
-	public Long runSelectLong(String sql) {
-		Map<String, Object> result = runSelectRow(sql);
+	public Long runSelectLong(String sql, List<Object> params) {
+		Map<String, Object> result = runSelectRow(sql, params);
 
 		String[] split = sql.split(" ");
 
@@ -177,11 +179,11 @@ public class SimpleDb {
 			throw new RuntimeException("해당 데이터가 존재하지 않습니다.");
 		}
 
-		return Long.parseLong(result.get("id").toString());
+		return Long.parseLong(result.get(split[1]).toString());
 	}
 
-	public String runSelectString(String sql) {
-		Map<String, Object> result = runSelectRow(sql);
+	public String runSelectString(String sql, List<Object> params) {
+		Map<String, Object> result = runSelectRow(sql, params);
 
 		String[] split = sql.split(" ");
 
@@ -192,8 +194,8 @@ public class SimpleDb {
 		return (String)result.get(split[1]);
 	}
 
-	public Boolean runSelectBoolean(String sql) {
-		Map<String, Object> result = runSelectRow(sql);
+	public Boolean runSelectBoolean(String sql, List<Object> params) {
+		Map<String, Object> result = runSelectRow(sql, params);
 		StringBuilder sb = new StringBuilder();
 
 		String[] split = sql.split(" ");
