@@ -27,7 +27,7 @@ public class SimpleDbTest {
     public static void beforeAll() {
         simpleDb = new SimpleDb("localhost", "root", "ghdrk123", "simpleDb_test");
         simpleDb.setDevMode(true);
-
+        System.out.println(13);
         createArticleTable();
     }
 
@@ -415,7 +415,7 @@ public class SimpleDbTest {
         assertThat(article.getModifiedDate()).isNotNull();
         assertThat(article.isBlind()).isEqualTo(false);
     }
-    /*
+
     @Test
     @DisplayName("use in multi threading")
     public void t017() throws InterruptedException {
@@ -477,7 +477,7 @@ public class SimpleDbTest {
 
         // 성공 카운터가 쓰레드 수와 동일한지 확인합니다.
         assertThat(successCounter.get()).isEqualTo(numberOfThreads);
-    }*/
+    }
     @Test
     @DisplayName("rollback")
     public void t018() {

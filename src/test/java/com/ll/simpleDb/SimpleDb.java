@@ -2,49 +2,62 @@ package com.ll.simpleDb;
 
 import java.sql.*;
 
-public class SimpleDb extends Sql{
-
+public class SimpleDb{
+    String url;
+    String id;
+    String pw;
+    String dbName;
+    String port;
+    Connection con;
+    boolean isDev;
+    boolean autoCommit = true;
     SimpleDb(String url, String id, String pw, String dbName) {
-        super(url, id, pw, dbName);
+        this.url =url;
+        this.id = id;
+        this.pw =pw;
+        this.dbName = dbName;
+        this.port = "3306";
+        init();
     }
 
-    void run(String query) {
-        Statement stmt = null;
+    void init() {
         try {
+            con = DriverManager.getConnection("jdbc:mysql://" + url + ":" + port + "/" + dbName, id, pw);
+            con.setAutoCommit(false);
 
-            stmt = con.createStatement();
-            stmt.execute(query);
-            commit();
-            stmt.close();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
+    }
+    void run(String query) {
+        this.genSql().append(query).create();
+    }
+    void run(String query,String title,String body, boolean isBlind){
+        this.genSql().append(query,title,body,isBlind).insert();
     }
     void setDevMode(boolean isDev){
         this.isDev = isDev;
     }
-
-    void startTransaction(){
-        autoCommit = false;
-
-    }
-    void run(String query,String title,String body, boolean isBlind){
+    void closeConnection(){
         try {
-            PreparedStatement stmt = con.prepareStatement(query);
-            stmt.setString(1, title); // 첫 번째 ?에 바인딩
-            stmt.setString(2, body);  // 두 번째 ?에 바인딩
-            stmt.setBoolean(3, isBlind); // 세 번째 ?에 바인딩
-            stmt.executeUpdate();
-            commit();
-            stmt.close();
+            con.close();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-
-
     }
+    void rollback(){
+        try {
+            con.rollback();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    void startTransaction(){
+        autoCommit = false;
+    }
+
     Sql genSql(){
-        return new Sql(url, id, pw, dbName,autoCommit);
+        return new Sql(con,autoCommit);
     }
 
 

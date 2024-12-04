@@ -1,63 +1,25 @@
 package com.ll.simpleDb;
-
-import java.security.Key;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+
 
 public class Sql {
     StringBuilder sql = new StringBuilder();
-    String url;
-    String id;
-    String pw;
-    String dbName;
-    String port;
     Connection con;
     boolean autoCommit = true;
 
     boolean isDev;
 
-    Sql(String url, String id, String pw, String dbName) {
-        this.url = url;
-        this.id = id;
-        this.pw = pw;
-        this.dbName = dbName;
-        port = "3306";
-        autoCommit = true;
-        init();
-    }
-    Sql(String url, String id, String pw, String dbName,boolean autoCommit) {
-        this.url = url;
-        this.id = id;
-        this.pw = pw;
-        this.dbName = dbName;
-        port = "3306";
+    Sql(Connection con,boolean autoCommit){
+        this.con = con;
         this.autoCommit = autoCommit;
-        init();
     }
 
-    void init() {
-        try {
-            con = DriverManager.getConnection("jdbc:mysql://" + url + ":" + port + "/" + dbName, id, pw);
-            con.setAutoCommit(false);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-    }
     void commit() throws SQLException {
-        System.out.println(autoCommit);
         if(autoCommit)
             con.commit();
-    }
-
-    void rollback(){
-        try {
-            con.rollback();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
     }
     Sql append(String query) {
         sql.append(query).append(" ");
@@ -69,12 +31,24 @@ public class Sql {
         sql.append(query).append(" ");
         return this;
     }
-    Sql append(String query, int... contents) {
+    /*Sql append(String query, int... contents) {
         for (int content : contents)
             query = query.replaceFirst("\\?",content+"");
         sql.append(query).append(" ");
         return this;
+    }*/
+    Sql append(String query, Object... contents) {
+        for (Object content : contents) {
+            if(content instanceof String)
+                query = query.replaceFirst("\\?", "'" + content + "'");
+            else
+                query = query.replaceFirst("\\?",   content.toString() );
+        }
+        sql.append(query).append(" ");
+        System.out.println(sql);
+        return this;
     }
+
 
     Sql appendIn(String query, int... contents) {
         StringBuilder save = new StringBuilder();
@@ -130,6 +104,9 @@ public class Sql {
 
     long delete() {
         return runQeury();
+    }
+    long create(){
+        return  runQeury();
     }
 
     Map<String, String> getColumnName(ResultSet rs) throws SQLException {
@@ -213,7 +190,6 @@ public class Sql {
     }
 
     long selectLong() {
-
         return (long) selectRow().get(getRowColumnName(selectRow().keySet()));
     }
 
