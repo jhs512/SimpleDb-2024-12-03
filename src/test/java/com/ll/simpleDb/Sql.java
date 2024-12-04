@@ -34,7 +34,13 @@ public class Sql {
             throw new RuntimeException(e);
         }
     }
-
+    void closeConnection(){
+        try {
+            con.close();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
     Sql append(String query) {
         sql.append(query).append(" ");
         return this;
