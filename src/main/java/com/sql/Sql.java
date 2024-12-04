@@ -5,7 +5,9 @@ import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -23,6 +25,24 @@ public class Sql {
 	public Sql append(String sql, Object... params) {
 		sb.append(sql + " ");
 		Collections.addAll(this.params, params);
+
+		return this;
+	}
+
+	public Sql appendIn(String sql, int... params) {
+		String[] split = sql.split("\\?");
+		sb.append(split[0]);
+
+		for (int i = 0; i < params.length; i++) {
+			sb.append("?,");
+		}
+
+		sb.deleteCharAt(sb.length() - 1);
+		sb.append(")");
+
+		for (int param : params) {
+			this.params.add(param);
+		}
 
 		return this;
 	}
