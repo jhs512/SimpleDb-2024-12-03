@@ -18,6 +18,7 @@ public class SimpleDbImpl implements SimpleDb {
     private final String dbName;
     private final Connection conn;
     private Map<UUID, Connection> connectionMap = new ConcurrentHashMap<>();
+    private ThreadLocal<Connection> connectionThreadLocal = new ThreadLocal<>();
     private Boolean isDevMode = false;
     // 커넥션 풀
     private static Queue<Connection> connectionPool = new ConcurrentLinkedQueue<>();
@@ -53,6 +54,7 @@ public class SimpleDbImpl implements SimpleDb {
         return conn;
     }
 
+
     /**
      * @param id
      * @apiNote 사용했던 커넥션 풀을 반납합니다
@@ -64,6 +66,17 @@ public class SimpleDbImpl implements SimpleDb {
         connectionMap.remove(id);
         notifyAll();
     }
+
+    public synchronized void returnConn() {
+        Connection conn = connectionThreadLocal.get();
+        if (conn != null) {
+            connectionPool.add(conn);
+            connectionThreadLocal.remove();
+            notifyAll();
+        }
+
+    }
+
 
     //TODO : 예외처리 리팩토링
     private Connection connect() {
@@ -106,7 +119,7 @@ public class SimpleDbImpl implements SimpleDb {
         SqlImpl sqlImpl = genSql();
         sqlImpl.append(query, params);
         long result = sqlImpl.update();
-        returnConn(sqlImpl.id);
+        returnConn();
         return result;
     }
 
@@ -119,11 +132,11 @@ public class SimpleDbImpl implements SimpleDb {
         Connection conn = getConn();
         if (isDevMode) {
             SqlImpl sqlImpl = new SqlDevImpl(conn);
-            connectionMap.put(sqlImpl.id, conn);
+            connectionThreadLocal.set(conn);
             return sqlImpl;
         }
         SqlImpl sqlImpl = new SqlImpl(conn);
-        connectionMap.put(sqlImpl.id, conn);
+        connectionThreadLocal.set(conn);
         return sqlImpl;
     }
 
@@ -150,10 +163,34 @@ public class SimpleDbImpl implements SimpleDb {
             throw new RuntimeException(e);
         }
     }
+
+    public synchronized void closeConnection() {
+        try {
+            Connection conn = connectionThreadLocal.get();
+            if (conn != null) {
+                conn.close();
+                connectionThreadLocal.remove();
+                connectionPool.add(connect());
+                notifyAll();
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
     @Override
     public void startTransaction(UUID id) {
         try {
-            Connection conn = connectionMap.get(id);;
+            Connection conn = connectionMap.get(id);
+            conn.setAutoCommit(false);
+        } catch (SQLException e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    public void startTransaction() {
+        try {
+            Connection conn = connectionThreadLocal.get();
             conn.setAutoCommit(false);
         } catch (SQLException e) {
             throw new RuntimeException(e.getMessage());
@@ -170,10 +207,28 @@ public class SimpleDbImpl implements SimpleDb {
         }
     }
 
+    public void rollback() {
+        try {
+            Connection conn = connectionThreadLocal.get();
+            conn.rollback();
+        } catch (SQLException e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
     @Override
     public void commit(UUID id) {
         try {
             Connection conn = connectionMap.get(id);
+            conn.commit();
+        } catch (SQLException e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    public void commit() {
+        try {
+            Connection conn = connectionThreadLocal.get();
             conn.commit();
         } catch (SQLException e) {
             throw new RuntimeException(e.getMessage());

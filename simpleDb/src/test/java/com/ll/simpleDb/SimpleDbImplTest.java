@@ -25,7 +25,7 @@ public class SimpleDbImplTest {
     @BeforeAll
     public static void beforeAll() {
         simpleDbImpl = new SimpleDbImpl("localhost:3306", "root", "lldj123414", "db_test");
-        simpleDbImpl.setDevMode(true);
+        simpleDbImpl.setDevMode(false);
 
         createArticleTable();
     }
@@ -34,6 +34,11 @@ public class SimpleDbImplTest {
     public void beforeEach() {
         truncateArticleTable();
         makeArticleTestData();
+    }
+
+    @AfterEach
+    public void afterEach() {
+        simpleDbImpl.returnConn();
     }
 
     private static void createArticleTable() {
@@ -50,6 +55,7 @@ public class SimpleDbImplTest {
                     isBlind BIT(1) NOT NULL DEFAULT 0
                 )
                 """);
+
     }
 
     private void makeArticleTestData() {
@@ -94,7 +100,6 @@ public class SimpleDbImplTest {
         long newId = sqlImpl.insert(); // AUTO_INCREMENT 에 의해서 생성된 주키 리턴
 
         assertThat(newId).isGreaterThan(0);
-        simpleDbImpl.returnConn(sqlImpl.id);
     }
 
 
@@ -120,7 +125,6 @@ public class SimpleDbImplTest {
         long affectedRowsCount = sqlImpl.update();
 
         assertThat(affectedRowsCount).isEqualTo(3);
-        simpleDbImpl.returnConn(sqlImpl.id);
 
     }
 
@@ -144,7 +148,6 @@ public class SimpleDbImplTest {
         long affectedRowsCount = sqlImpl.delete();
 
         assertThat(affectedRowsCount).isEqualTo(2);
-        simpleDbImpl.returnConn(sqlImpl.id);
 
     }
 
@@ -176,7 +179,6 @@ public class SimpleDbImplTest {
             assertThat(articleRow.get("modifiedDate")).isNotNull();
             assertThat(articleRow.get("isBlind")).isEqualTo(false);
         });
-        simpleDbImpl.returnConn(sqlImpl.id);
     }
 
     @Test
@@ -200,7 +202,6 @@ public class SimpleDbImplTest {
         assertThat(articleRow.get("modifiedDate")).isInstanceOf(LocalDateTime.class);
         assertThat(articleRow.get("modifiedDate")).isNotNull();
         assertThat(articleRow.get("isBlind")).isEqualTo(false);
-        simpleDbImpl.returnConn(sqlImpl.id);
 
     }
 
@@ -219,7 +220,6 @@ public class SimpleDbImplTest {
         long diff = ChronoUnit.SECONDS.between(datetime, LocalDateTime.now());
 
         assertThat(diff).isLessThanOrEqualTo(1L);
-        simpleDbImpl.returnConn(sqlImpl.id);
 
     }
 
@@ -240,7 +240,6 @@ public class SimpleDbImplTest {
         Long id = sqlImpl.selectLong();
 
         assertThat(id).isEqualTo(1);
-        simpleDbImpl.returnConn(sqlImpl.id);
 
     }
 
@@ -261,7 +260,6 @@ public class SimpleDbImplTest {
         String title = sqlImpl.selectString();
 
         assertThat(title).isEqualTo("제목1");
-        simpleDbImpl.returnConn(sqlImpl.id);
 
     }
 
@@ -282,7 +280,6 @@ public class SimpleDbImplTest {
         Boolean isBlind = sqlImpl.selectBoolean();
 
         assertThat(isBlind).isEqualTo(false);
-        simpleDbImpl.returnConn(sqlImpl.id);
 
     }
 
@@ -299,7 +296,6 @@ public class SimpleDbImplTest {
         Boolean isBlind = sqlImpl.selectBoolean();
 
         assertThat(isBlind).isEqualTo(true);
-        simpleDbImpl.returnConn(sqlImpl.id);
 
     }
 
@@ -316,7 +312,6 @@ public class SimpleDbImplTest {
         Boolean isBlind = sqlImpl.selectBoolean();
 
         assertThat(isBlind).isEqualTo(false);
-        simpleDbImpl.returnConn(sqlImpl.id);
 
     }
 
@@ -339,7 +334,6 @@ public class SimpleDbImplTest {
         long count = sqlImpl.selectLong();
 
         assertThat(count).isEqualTo(3);
-        simpleDbImpl.returnConn(sqlImpl.id);
 
     }
 
@@ -360,7 +354,6 @@ public class SimpleDbImplTest {
         long count = sqlImpl.selectLong();
 
         assertThat(count).isEqualTo(3);
-        simpleDbImpl.returnConn(sqlImpl.id);
 
     }
 
@@ -384,7 +377,6 @@ public class SimpleDbImplTest {
         List<Long> foundIds = sqlImpl.selectLongs();
 
         assertThat(foundIds).isEqualTo(Arrays.stream(ids).toList());
-        simpleDbImpl.returnConn(sqlImpl.id);
 
     }
 
@@ -416,7 +408,6 @@ public class SimpleDbImplTest {
             assertThat(article.getModifiedDate()).isNotNull();
             assertThat(article.getIsBlind()).isEqualTo(false);
         });
-        simpleDbImpl.returnConn(sqlImpl.id);
 
     }
 
@@ -443,7 +434,6 @@ public class SimpleDbImplTest {
         assertThat(article.getModifiedDate()).isInstanceOf(LocalDateTime.class);
         assertThat(article.getModifiedDate()).isNotNull();
         assertThat(article.getIsBlind()).isEqualTo(false);
-        simpleDbImpl.returnConn(sqlImpl.id);
 
     }
 
@@ -465,9 +455,9 @@ public class SimpleDbImplTest {
         // 각 쓰레드에서 실행될 작업을 정의합니다.
         Runnable task = () -> {
             // SimpleDB에서 SQL 객체를 생성합니다.
-            SqlImpl sqlImpl = simpleDbImpl.genSql();
 
             try {
+                SqlImpl sqlImpl = simpleDbImpl.genSql();
                 // SQL 쿼리를 작성합니다.
                 sqlImpl.append("SELECT * FROM article WHERE id = 1");
 
@@ -488,8 +478,8 @@ public class SimpleDbImplTest {
                     successCounter.incrementAndGet();
                 }
             } finally {
-                // 커넥션 종료 (커넥션 반납)
-                simpleDbImpl.returnConn(sqlImpl.id);
+                // 커넥션 종료
+                simpleDbImpl.closeConnection();
                 // 작업이 완료되면 래치 카운터를 감소시킵니다.
                 latch.countDown();
             }
@@ -522,14 +512,14 @@ public class SimpleDbImplTest {
 
         // 트랜잭션을 시작합니다.
         SqlImpl sqlImpl = simpleDbImpl.genSql();
-        simpleDbImpl.startTransaction(sqlImpl.id);
+        simpleDbImpl.startTransaction();
         sqlImpl
             .append("INSERT INTO article ")
             .append("(createdDate, modifiedDate, title, body)")
             .appendIn("VALUES (NOW(), NOW(), ?)", "새 제목", "새 내용")
             .insert();
 
-        simpleDbImpl.rollback(sqlImpl.id);
+        simpleDbImpl.rollback();
 
         long newCount = simpleDbImpl.genSql()
             .append("SELECT COUNT(*)")
@@ -537,8 +527,6 @@ public class SimpleDbImplTest {
             .selectLong();
 
         assertThat(newCount).isEqualTo(oldCount);
-        simpleDbImpl.returnConn(sqlImpl.id);
-
     }
 
     @Test
@@ -552,14 +540,14 @@ public class SimpleDbImplTest {
 
         // 트랜잭션을 시작합니다.
         SqlImpl sqlImpl = simpleDbImpl.genSql();
-        simpleDbImpl.startTransaction(sqlImpl.id);
+        simpleDbImpl.startTransaction();
         sqlImpl
             .append("INSERT INTO article ")
             .append("(createdDate, modifiedDate, title, body)")
             .appendIn("VALUES (NOW(), NOW(), ?)", "새 제목", "새 내용")
             .insert();
 
-        simpleDbImpl.commit(sqlImpl.id);
+        simpleDbImpl.commit();
 
         long newCount = simpleDbImpl.genSql()
             .append("SELECT COUNT(*)")
@@ -567,7 +555,7 @@ public class SimpleDbImplTest {
             .selectLong();
 
         assertThat(newCount).isEqualTo(oldCount + 1);
-        simpleDbImpl.returnConn(sqlImpl.id);
+        simpleDbImpl.returnConn();
 
     }
 }
