@@ -6,14 +6,14 @@ import java.util.*;
 
 public class Sql {
     private StringBuilder sql = new StringBuilder();
-    private SimpleDb simpleDb;
     private final Connection connection;
     private PreparedStatement preparedStatement;
-    private List<Object> params = new ArrayList<>();
+    private final List<Object> params = new ArrayList<>();
+    private final Boolean devMode;
 
-    public Sql(SimpleDb db) {
-        simpleDb = db;
-        this.connection = db.getConnection();
+    public Sql(Boolean devMode, Connection connection) {
+        this.devMode = devMode;
+        this.connection = connection;
     }
 
     public Sql append(String sql, Object... params) {
@@ -24,9 +24,11 @@ public class Sql {
 
     public Sql appendIn(String sql, Object... params) {
         StringBuilder parsedParam = new StringBuilder();
+
+        // MySQL은 PreparedStatement.setArray 메서드를 지원하지 않기 때문에 직접 문자열로 파싱
         for (int i = 0; i < params.length; i++) {
             parsedParam.append("'").append(params[i]).append("'");
-            if(i != params.length - 1) parsedParam.append(",");
+            if (i != params.length - 1) parsedParam.append(",");
         }
         sql = sql.replaceFirst("\\?", parsedParam.toString());
 
@@ -39,8 +41,8 @@ public class Sql {
         long id = -1;
         try {
             preparedStatement = connection.prepareStatement(sql.toString(), Statement.RETURN_GENERATED_KEYS);
-            for(int i=0; i<params.size(); i++) {
-                preparedStatement.setObject(i+1, params.get(i));
+            for (int i = 0; i < params.size(); i++) {
+                preparedStatement.setObject(i + 1, params.get(i));
             }
             preparedStatement.executeUpdate();
 
@@ -59,14 +61,14 @@ public class Sql {
         return id;
     }
 
-    public long update() {
-        long affectedRows = excuteUpdateSql();
+    public int update() {
+        int affectedRows = excuteUpdateSql();
 
         return affectedRows;
     }
 
-    public long delete() {
-        long affectedRows = excuteUpdateSql();
+    public int delete() {
+        int affectedRows = excuteUpdateSql();
 
         return affectedRows;
     }
@@ -75,7 +77,7 @@ public class Sql {
         List<Map<String, Object>> articles = new ArrayList<>();
 
         try {
-            ResultSet rs = selectExcute();
+            ResultSet rs = excuteSelectOneRow();
 
             while (rs.next()) {
                 Map<String, Object> articleMap = new HashMap<>();
@@ -100,7 +102,7 @@ public class Sql {
     public List<Article> selectRows(Class<Article> articleClass) {
         List<Article> articles = new ArrayList<>();
         try {
-            ResultSet rs = selectExcute();
+            ResultSet rs = excuteSelectOneRow();
 
             while (rs.next()) {
                 articles.add(new Article(rs.getLong("id"),
@@ -123,7 +125,7 @@ public class Sql {
         Map<String, Object> article = new HashMap<>();
 
         try {
-            ResultSet rs = selectExcute();
+            ResultSet rs = excuteSelectOneRow();
             rs.next();
 
             article.put("id", rs.getLong("id"));
@@ -142,10 +144,32 @@ public class Sql {
         return article;
     }
 
+    public Article selectRow(Class<Article> articleClass) {
+        Article article = null;
+        try {
+            ResultSet rs = excuteSelectOneRow();
+            rs.next();
+
+            article = new Article(rs.getLong("id"),
+                    rs.getString("title"),
+                    rs.getString("body"),
+                    rs.getTimestamp("createdDate").toLocalDateTime(),
+                    rs.getTimestamp("modifiedDate").toLocalDateTime(),
+                    rs.getBoolean("isBlind"));
+
+            preparedStatement.close();
+            rs.close();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return article;
+    }
+
+
     public LocalDateTime selectDatetime() {
         LocalDateTime localDateTime;
         try {
-            ResultSet rs = selectExcute();
+            ResultSet rs = excuteSelectOneRow();
             rs.next();
             localDateTime = rs.getTimestamp("NOW()").toLocalDateTime();
 
@@ -161,7 +185,7 @@ public class Sql {
     public Long selectLong() {
         long count;
         try {
-            ResultSet rs = selectExcute();
+            ResultSet rs = excuteSelectOneRow();
             rs.next();
             count = rs.getLong(rs.getMetaData().getColumnName(1));
 
@@ -178,10 +202,10 @@ public class Sql {
         List<Long> longs = new ArrayList<>();
 
         try {
-            ResultSet rs = selectExcute();
+            ResultSet rs = excuteSelectOneRow();
             ResultSetMetaData rsmd = rs.getMetaData();
 
-            while(rs.next()) {
+            while (rs.next()) {
                 longs.add(rs.getLong(rsmd.getColumnName(1)));
             }
 
@@ -197,10 +221,11 @@ public class Sql {
     public String selectString() {
         String title;
         try {
-            ResultSet rs = selectExcute();
+            ResultSet rs = excuteSelectOneRow();
             rs.next();
             title = rs.getString("title");
 
+            connection.close();
             preparedStatement.close();
             rs.close();
         } catch (SQLException e) {
@@ -211,9 +236,9 @@ public class Sql {
     }
 
     public Boolean selectBoolean() {
-        Boolean isBlind;
+        boolean isBlind;
         try {
-            ResultSet rs = selectExcute();
+            ResultSet rs = excuteSelectOneRow();
             rs.next();
             isBlind = rs.getBoolean(rs.getMetaData().getColumnName(1));
 
@@ -226,10 +251,10 @@ public class Sql {
         return isBlind;
     }
 
-    private ResultSet selectExcute() throws SQLException {
+    private ResultSet excuteSelectOneRow() throws SQLException {
         preparedStatement = connection.prepareStatement(sql.toString());
-        for(int i=0; i<params.size(); i++) {
-            preparedStatement.setObject(i+1, params.get(i));
+        for (int i = 0; i < params.size(); i++) {
+            preparedStatement.setObject(i + 1, params.get(i));
         }
         ResultSet rs = preparedStatement.executeQuery();
 
@@ -237,15 +262,14 @@ public class Sql {
         return rs;
     }
 
-    private long excuteUpdateSql() {
-        long affectedRows = 0;
+    private int excuteUpdateSql() {
+        int affectedRows = 0;
         try {
             preparedStatement = connection.prepareStatement(sql.toString());
-            for(int i=0; i<params.size(); i++) {
-                preparedStatement.setObject(i+1, params.get(i));
+            for (int i = 0; i < params.size(); i++) {
+                preparedStatement.setObject(i + 1, params.get(i));
             }
             affectedRows = preparedStatement.executeUpdate();
-
             preparedStatement.close();
         } catch (SQLException e) {
             System.out.println("sql 입력 오류 = " + e);
@@ -257,12 +281,11 @@ public class Sql {
 
 
     private void showSql() {
-        if (simpleDb.getDevMode()) {
+        if (devMode) {
             System.out.println("== rawSql ==");
-            System.out.println("sql = " + sql);
+            System.out.println(sql);
         }
     }
-
 
 
 }

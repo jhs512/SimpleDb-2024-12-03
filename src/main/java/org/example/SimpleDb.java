@@ -12,56 +12,85 @@ public class SimpleDb {
     private final String url;
     @Getter @Setter
     private Boolean devMode = false;
-    @Getter
-    private final Connection connection;
-    @Getter @Setter
-    private PreparedStatement preparedStatement = null;
+    private Connection connection;
+    private Connection connectionOfSql;
+    private PreparedStatement preparedStatement;
+    private Boolean autoCommit = true;
 
 
     public SimpleDb(String host, String username, String password, String dbName) {
         int port = 3306;
 
         this.url = "jdbc:mysql://" + host + ":" + port + "/" + dbName;
-
         this.host = host;
         this.username = username;
         this.password = password;
-        this.connection = createConnection();
     }
 
     public Connection createConnection() {
+        Connection conn = null;
         try{
-            return DriverManager.getConnection(url, username, password);
+            conn = DriverManager.getConnection(url, username, password);
+            conn.setAutoCommit(autoCommit);
+            return conn;
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public void run(String sql) {
+    public void run(String sql, Object... params) {
         try{
+            if(connection == null || connection.isClosed()) connection = createConnection();
             preparedStatement = connection.prepareStatement(sql);
 
-            preparedStatement.executeUpdate();
-        } catch (SQLException e) {
-            System.out.println("sql 오류 " + e);
-        }
-    }
+            for(int i =0; i<params.length; i++ ) {
+                preparedStatement.setObject(i+1, params[i]);
+            }
 
-    public void run(String sql, String title, String body, Boolean isBlind) {
-        try{
-            sql = sql.replace("title = ?", "title = \"" + title + "\"");
-            sql = sql.replace("`body` = ?", "`body` = \"" + body + "\"");
-            sql = sql.replace("isBlind = ?", "isBlind = " + isBlind);
-
-            preparedStatement = connection.prepareStatement(sql);
             preparedStatement.executeUpdate();
+
         } catch (SQLException e) {
-            System.out.println("sql 오류 " + e);
+            System.out.println("SimpleDb에서 sql 오류 " + e);
+        } finally {
+            try{
+                preparedStatement.close();
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+
         }
     }
 
     public Sql genSql() {
-        return new Sql(this);
+        connectionOfSql = createConnection();
+        return new Sql(devMode, connectionOfSql);
     }
 
+    public void closeConnection() {
+        try{
+            this.connection.close();
+        } catch (SQLException e) {throw new RuntimeException();}
+    }
+
+    public void startTransaction() {
+        this.autoCommit = false;
+    }
+
+    public void rollback() {
+        try{
+            connectionOfSql.rollback();
+            this.autoCommit = true;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void commit() {
+        try{
+            connectionOfSql.commit();
+            this.autoCommit = true;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

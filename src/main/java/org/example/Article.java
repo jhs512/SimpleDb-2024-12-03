@@ -26,6 +26,16 @@ public class Article {
         this.isBlind = isBlind;
     }
 
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("ID: ").append(id).append("\n")
+                .append("Title: ").append(title).append("\n")
+                .append("Body: ").append(body).append("\n")
+                .append("Created: ").append(createdDate).append("\n")
+                .append("Modified: ").append(modifiedDate).append("\n")
+                .append("isBlind: ").append(isBlind);
+        return sb.toString();
+    }
     public boolean isBlind() {
         return this.isBlind;
     }
