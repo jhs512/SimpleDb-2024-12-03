@@ -1,9 +1,6 @@
 package com.ll.simpleDb;
 
-import com.ll.Article;
-import com.ll.SimpleDb;
-import com.ll.Sql;
-import com.ll.SqlImpl;
+import com.ll.*;
 import org.junit.jupiter.api.*;
 
 import java.time.LocalDateTime;
@@ -492,15 +489,15 @@ public class SimpleDbTest {
                 .selectLong();
 
         // 트랜잭션을 시작합니다.
-        simpleDb.startTransaction();
+        Sql sql = simpleDb.genSql();
+        TransactionManager.startTransaction(sql);
 
-        simpleDb.genSql()
-                .append("INSERT INTO article ", "제목 new")
-                .append("(createdDate, modifiedDate, title, body)", "제목 new")
-                .appendIn("VALUES (NOW(), NOW(), ?)", "새 제목", "새 내용")
-                .insert();
+        sql.append("INSERT INTO article ", "제목 new")
+            .append("(createdDate, modifiedDate, title, body)", "제목 new")
+            .appendIn("VALUES (NOW(), NOW(), ?)", "새 제목", "새 내용")
+            .insert();
 
-        simpleDb.rollback();
+        TransactionManager.rollback(sql);
 
         long newCount = simpleDb.genSql()
                 .append("SELECT COUNT(*)", "제목 new")
@@ -520,15 +517,15 @@ public class SimpleDbTest {
                 .selectLong();
 
         // 트랜잭션을 시작합니다.
-        simpleDb.startTransaction();
+        Sql sql = simpleDb.genSql();
+        TransactionManager.startTransaction(sql);
 
-        simpleDb.genSql()
-                .append("INSERT INTO article ", "제목 new")
-                .append("(createdDate, modifiedDate, title, body)", "제목 new")
-                .appendIn("VALUES (NOW(), NOW(), ?)", "새 제목", "새 내용")
-                .insert();
+        sql.append("INSERT INTO article ", "제목 new")
+            .append("(createdDate, modifiedDate, title, body)", "제목 new")
+            .appendIn("VALUES (NOW(), NOW(), ?)", "새 제목", "새 내용")
+            .insert();
 
-        simpleDb.commit();
+        TransactionManager.commit(sql);
 
         long newCount = simpleDb.genSql()
                 .append("SELECT COUNT(*)", "제목 new")

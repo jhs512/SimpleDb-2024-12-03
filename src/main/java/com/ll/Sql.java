@@ -1,5 +1,6 @@
 package com.ll;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -27,4 +28,6 @@ public interface Sql {
     List<Long> selectLongs();
 
     void close() throws SQLException;
+
+    public Connection getConnection();
 }

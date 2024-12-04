@@ -17,6 +17,11 @@ public class SqlImpl implements Sql {
     private StringBuilder query = new StringBuilder();
     private List<Object> params = new ArrayList<>();
 
+    @Override
+    public Connection getConnection() {
+        return conn;
+    }
+
     public SqlImpl append(String queryPiece, Object... values) {
         query.append(queryPiece);
         query.append(" ");
