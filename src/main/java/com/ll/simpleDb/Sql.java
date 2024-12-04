@@ -130,6 +130,30 @@ public class Sql {
         return rows;
     }
 
+    public List<Article> selectRows(Class<Article> articleClass) {
+        List<Article> articles = new ArrayList<>();
+        try {
+            PreparedStatement statement = connection.prepareStatement(query.toString());
+            ResultSet resultSet = statement.executeQuery();
+
+            while (resultSet.next()) {
+                Article article = new Article(
+                    resultSet.getLong("id"),
+                    resultSet.getString("title"),
+                    resultSet.getString("body"),
+                    resultSet.getBoolean("isBlind"),
+                    resultSet.getTimestamp("createdDate").toLocalDateTime(),
+                    resultSet.getTimestamp("modifiedDate").toLocalDateTime()
+                );
+                articles.add(article);
+            }
+            statement.close();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return articles;
+    }
+
 
     public LocalDateTime selectDatetime() {
         return selectValue("now()", LocalDateTime.class);
