@@ -3,6 +3,7 @@ package com.simpleDb;
 import static org.assertj.core.api.Assertions.*;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
@@ -277,6 +278,29 @@ public class SimpleDbTest {
         long count = sql.selectLong();
 
         assertThat(count).isEqualTo(3);
+    }
+
+	@Test
+    @DisplayName("selectLongs, ORDER BY FIELD 사용법")
+    public void t014() {
+        Long[] ids = new Long[]{2L, 1L, 3L};
+
+        Sql sql = simpleDb.genSql();
+		/*
+        == rawSql ==
+        SELECT id
+        FROM article
+        WHERE id IN ('2', '3', '1')
+        ORDER BY FIELD (id, '2', '3', '1')
+		*/
+        sql.append("SELECT id")
+                .append("FROM article")
+                .appendIn("WHERE id IN (?)", ids)
+                .appendIn("ORDER BY FIELD (id, ?)", ids);
+
+        List<Long> foundIds = sql.selectLongs();
+
+        assertThat(foundIds).isEqualTo(Arrays.stream(ids).toList());
     }
 
 	private static void createArticleTable() {
