@@ -4,6 +4,7 @@ import java.security.Key;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class Sql {
@@ -61,7 +62,16 @@ public class Sql {
         sql.append(query).append(" ");
         return this;
     }
-
+    Sql appendIn(String query, Long[] contents) {
+        StringBuilder save = new StringBuilder();
+        for (int i = 0; i < contents.length; i++) {
+            save.append(contents[i]);
+            if (i < contents.length - 1) save.append(", ");
+        }
+        query = query.replaceFirst("\\?", save.toString());
+        sql.append(query).append(" ");
+        return this;
+    }
 
     long runQeury() {
         long id = -1;
@@ -125,7 +135,6 @@ public class Sql {
         List<Map<String, Object>> result = new ArrayList<>();
         try {
             PreparedStatement stmt = con.prepareStatement(sql.toString());
-            System.out.println(stmt.toString());
             ResultSet rs = stmt.executeQuery();
 
             Map<String, String> map = getColumnName(rs);
@@ -148,13 +157,14 @@ public class Sql {
     }
 
     Map<String, Object> selectRow() {
+
         return (Map<String, Object>) select();
     }
 
     String getRowColumnName(Set a) {
         String name = "";
-        for (String i : selectRow().keySet())
-            name = i;
+        for (Object i : a)
+            name = (String)i;
         return name;
     }
 
@@ -166,6 +176,10 @@ public class Sql {
         return (long) selectRow().get(getRowColumnName(selectRow().keySet()));
     }
 
+    List<Long> selectLongs(){
+        return selectRows().stream().mapToLong(e -> (long)e.get(getRowColumnName(e.keySet()))).boxed().collect(Collectors.toList());
+    }
+
     String selectString() {
         return (String) selectRow().get(getRowColumnName(selectRow().keySet()));
     }
@@ -174,5 +188,6 @@ public class Sql {
         return (boolean) selectRow().get(getRowColumnName(selectRow().keySet()));
 
     }
+
 
 }
