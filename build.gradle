@@ -1,0 +1,26 @@
+plugins {
+    id 'java'
+}
+
+group 'com.ll'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.18.2'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.18.2'
+    implementation 'org.mariadb.jdbc:mariadb-java-client:3.5.1'
+    compileOnly 'org.projectlombok:lombok:1.18.36'
+    annotationProcessor 'org.projectlombok:lombok:1.18.36'
+    testImplementation 'org.assertj:assertj-core:3.26.3'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.11.3'
+    testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.11.3'
+    testImplementation platform('org.junit:junit-bom:5.11.3')
+}
+
+test {
+    useJUnitPlatform()
+}
