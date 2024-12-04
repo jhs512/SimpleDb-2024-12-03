@@ -124,6 +124,7 @@ public class SimpleDbTest {
 
         assertThat(affectedRowsCount).isEqualTo(3);
     }
+
     @Test
     @DisplayName("delete")
     public void t003() {
@@ -145,6 +146,7 @@ public class SimpleDbTest {
 
         assertThat(affectedRowsCount).isEqualTo(2);
     }
+
     @Test
     @DisplayName("selectRows")
     public void t004() {
@@ -173,6 +175,7 @@ public class SimpleDbTest {
             assertThat(articleRow.get("isBlind")).isEqualTo(false);
         });
     }
+
     @Test
     @DisplayName("selectRow")
     public void t005() {
@@ -211,6 +214,7 @@ public class SimpleDbTest {
 
         assertThat(diff).isLessThanOrEqualTo(1L);
     }
+
     @Test
     @DisplayName("selectLong")
     public void t007() {
@@ -229,6 +233,7 @@ public class SimpleDbTest {
 
         assertThat(id).isEqualTo(1);
     }
+
     @Test
     @DisplayName("selectString")
     public void t008() {
@@ -247,6 +252,7 @@ public class SimpleDbTest {
 
         assertThat(title).isEqualTo("제목1");
     }
+
     @Test
     @DisplayName("selectBoolean")
     public void t009() {
@@ -265,6 +271,7 @@ public class SimpleDbTest {
 
         assertThat(isBlind).isEqualTo(false);
     }
+
     @Test
     @DisplayName("selectBoolean, 2nd")
     public void t010() {
@@ -279,6 +286,7 @@ public class SimpleDbTest {
 
         assertThat(isBlind).isEqualTo(true);
     }
+
     @Test
     @DisplayName("selectBoolean, 3rd")
     public void t011() {
@@ -292,6 +300,27 @@ public class SimpleDbTest {
         Boolean isBlind = sql.selectBoolean();
 
         assertThat(isBlind).isEqualTo(false);
+    }
+
+    @Test
+    @DisplayName("select, LIKE 사용법")
+    public void t012() {
+        Sql sql = simpleDb.genSql();
+        /*
+        == rawSql ==
+        SELECT COUNT(*)
+        FROM article
+        WHERE id BETWEEN '1' AND '3'
+        AND title LIKE CONCAT('%', '제목' '%')
+        */
+        sql.append("SELECT COUNT(*)")
+                .append("FROM article")
+                .append("WHERE id BETWEEN ? AND ?", 1, 3)
+                .append("AND title LIKE CONCAT('%', ? '%')", "제목");
+
+        long count = sql.selectLong();
+
+        assertThat(count).isEqualTo(3);
     }
 
 }
