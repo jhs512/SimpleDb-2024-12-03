@@ -29,7 +29,7 @@ public class Sql {
 		return this;
 	}
 
-	public Sql appendIn(String sql, int... params) {
+	public Sql appendIn(String sql, Object... params) {
 		String[] split = sql.split("\\?");
 		sb.append(split[0]);
 
@@ -40,7 +40,7 @@ public class Sql {
 		sb.deleteCharAt(sb.length() - 1);
 		sb.append(")");
 
-		for (int param : params) {
+		for (Object param : params) {
 			this.params.add(param);
 		}
 
@@ -78,5 +78,9 @@ public class Sql {
 
 	public Boolean selectBoolean() {
 		return simpleDb.runSelectBoolean(sb.toString(), params);
+	}
+
+	public List<Long> selectLongs() {
+		return simpleDb.runSelectLongs(sb.toString(), params);
 	}
 }
