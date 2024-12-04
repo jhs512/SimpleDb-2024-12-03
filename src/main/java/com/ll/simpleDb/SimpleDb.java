@@ -103,5 +103,17 @@ public class SimpleDb {
             throw new RuntimeException(e);
         }
     }
+
+    // 트랜잭션 커밋 메서드
+    public void commit() {
+        try {
+            Connection connection = getConnection();
+            if (connection != null) {
+                connection.commit();  // 트랜잭션 커밋
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }
 
