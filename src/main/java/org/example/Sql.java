@@ -1,9 +1,8 @@
 package org.example;
 
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.time.LocalDateTime;
+import java.util.*;
 
 public class Sql {
 
@@ -44,7 +43,6 @@ public class Sql {
     }
 
 
-
     private void bindParameters(PreparedStatement pst, List<Object> params) throws SQLException {
         for (int i = 0; i < params.size(); i++) {
             pst.setObject(i + 1, params.get(i));
@@ -76,5 +74,39 @@ public class Sql {
         } catch (SQLException e) {
             throw new RuntimeException("Failed to execute SQL : " + sql + " Error : " + e.getMessage(), e);
         }
+    }
+
+    public List<Map<String, Object>> selectRows() {
+        String sql = sb.toString();
+        List<Map<String, Object>> rows = new ArrayList<>();
+
+        try (PreparedStatement pst = conn.prepareStatement(sql)) {
+
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) {
+
+                Map<String, Object> row = new HashMap<>();
+                ResultSetMetaData metaData = rs.getMetaData();
+                int columnCount = metaData.getColumnCount();
+
+                for (int i = 1; i <= columnCount; i++) {
+                    String columnName = metaData.getColumnName(i);
+                    Object content = rs.getObject(i);
+
+                    if (content instanceof Timestamp) {
+                        content = ((Timestamp) content ).toLocalDateTime();
+                    }
+
+                    row.put(columnName, content);
+                }
+                rows.add(row);
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+
+        return rows;
     }
 }

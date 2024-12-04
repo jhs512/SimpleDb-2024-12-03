@@ -52,7 +52,7 @@ public class SimpleDb {
     private void connect () {
 
         if(conn == null) {
-            String url = String.format("jdbc:mysql://%s/%s?useSSL=false", host, dbName);
+            String url = String.format("jdbc:mysql://%s/%s?useSSL=false&allowPublicKeyRetrieval=true", host, dbName);
 
             try {
                 conn = DriverManager.getConnection(url, user, password);
