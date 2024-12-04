@@ -6,15 +6,14 @@ import lombok.Setter;
 import java.sql.*;
 
 
-public class SimpleDb {
-    private Connection conn;
+public class SimpleDb implements DataSource {
     private final String host;
     private final String user;
     private final String password;
     private final String db;
-
     private final String jdbc_url;
 
+    private Connection conn;
     @Setter
     private boolean devMode;
 
@@ -67,16 +66,6 @@ public class SimpleDb {
         }
     }
 
-    public void close(){
-        if (conn != null){
-            try{
-                conn.close();
-            }catch(SQLException e){
-                e.printStackTrace();
-            }
-        }
-    }
-
     public Sql genSql() {
         return new Sql(conn, this.devMode, this);
     }
@@ -85,6 +74,7 @@ public class SimpleDb {
         return DriverManager.getConnection(jdbc_url, user, password);
     }
 
+    @Override
     public void closeConnection() {
         if (conn != null){
             try{
@@ -95,6 +85,7 @@ public class SimpleDb {
         }
     }
 
+    @Override
     public void startTransaction() {
         if (conn != null){
             try{
@@ -110,6 +101,7 @@ public class SimpleDb {
         }
     }
 
+    @Override
     public void rollback() {
         if(conn != null){
             try{
@@ -120,6 +112,7 @@ public class SimpleDb {
         }
     }
 
+    @Override
     public void commit(){
         try {
             conn.commit();
@@ -127,5 +120,4 @@ public class SimpleDb {
             e.printStackTrace();
         }
     }
-
 }
