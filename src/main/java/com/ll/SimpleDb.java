@@ -6,6 +6,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.List;
 
 @Setter
 public class SimpleDb {
@@ -16,6 +17,7 @@ public class SimpleDb {
     private final String dbName;
     private final String dbUrl;
     private boolean devMode;
+    private static ThreadLocal<List<String>> threadLocalList;
 
 
     public SimpleDb(String url, String username, String password, String dbName) {
@@ -69,4 +71,6 @@ public class SimpleDb {
     }
 
 
+    public void closeConnection() {
+    }
 }

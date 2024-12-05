@@ -6,13 +6,10 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
-//prepared Statment creator
-//templates 종료: update select 등등
-
-
-
+import java.util.stream.Stream;
 
 
 public class Sql {
@@ -36,17 +33,36 @@ public class Sql {
     }
 
     public Sql appendIn(String segment, Object... objs) {
-        StringBuilder sb = new StringBuilder();
+        return appendInArray(segment, objs);
+    }
 
-        sb.append("(");
+    public Sql appendInArray(String segment, Object[] objs) {
+        StringBuilder sb = new StringBuilder();
+        String[] params = extractParentheses(segment).split(",");
+
+
+        for (int i=0; i < params.length && !params[i].contains("?") ;++i) {
+            sb.append(params[i].trim());
+            sb.append(", ");
+        }
         sb.append("?, ".repeat(objs.length));
         sb.setLength(sb.length() - 2);
-        sb.append(")");
 
-        rawStmt += segment.replace("(?)", sb.toString()) + "\n";
+        rawStmt += segment.replace(extractParentheses(segment), sb.toString()) + "\n";
         args.addAll(Arrays.asList(objs));
 
         return this;
+    }
+
+    private String extractParentheses(String query) {
+        Pattern pattern = Pattern.compile("\\((.*?)\\)");
+        Matcher matcher = pattern.matcher(query);
+
+        if (matcher.find()) {
+            return matcher.group(1); // Return the content inside parentheses
+        } else {
+            throw new RuntimeException("Format Error: " + query);
+        }
     }
 
     public Sql append(String segment, Object... objs) {
