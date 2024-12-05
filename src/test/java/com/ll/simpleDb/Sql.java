@@ -119,17 +119,11 @@ public class Sql {
 
         return result;
     }
-    boolean isQueryBoolean(String type,String name){
-        if (type.chars().allMatch(Character::isDigit)) {
-            return (Integer.parseInt(name) == 0) || (Integer.parseInt(name) == 1);
-        }
-        return name.equals("1 = 0") || name.equals("1 = 1") || type.contains("BIT");
-    }
     Object getColumnContent(ResultSet rs, String name, String type) throws SQLException {
-        if (isQueryBoolean(type,name)) {
-                return rs.getBoolean(name);
-        }
-
+        if(type.contains("BIGINT") && name.contains("COUNT"))
+            return rs.getLong(name);
+        if(type.contains("BIGINT") || type.contains("BIT"))
+            return rs.getBoolean(name);
         if (type.contains("INT"))
             return rs.getLong(name);
         if (type.equals("DATETIME")) {

@@ -78,6 +78,7 @@ public class SimpleDb {
     void stayForMultiThread() throws InterruptedException {
         String name = currentThread().getName();
         String a = name.substring(name.length() - 1);
+
         char b = a.toCharArray()[0];
         if (Character.isDigit(b)) {
             while (multiThreadCount != Integer.parseInt(a)) {
