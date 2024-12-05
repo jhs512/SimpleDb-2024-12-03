@@ -3,10 +3,11 @@ package com.ll;
 
 import lombok.Setter;
 
+import javax.sql.DataSource;
 import java.sql.*;
 
 
-public class SimpleDb implements DataSource {
+public class SimpleDb {
     private final String host;
     private String user;
     private String password;
@@ -30,7 +31,7 @@ public class SimpleDb implements DataSource {
         }
     }
 
-    public void run(String query){
+    public long run(String query, Object ... params){
         try {
             Statement stmt = conn.createStatement();
 
@@ -65,7 +66,7 @@ public class SimpleDb implements DataSource {
     }
 
     public Sql genSql() {
-        return new Sql(getConnection(), this.devMode);
+        return new Sql(this);
     }
 
     private final ThreadLocal<Connection> threadLocalConnection = ThreadLocal.withInitial(() -> {
@@ -80,21 +81,42 @@ public class SimpleDb implements DataSource {
         return threadLocalConnection.get();
     }
 
+    /*
+     * devMode true 로 설정 시 생성된 sql문 출력
+     *
+     * @param ps Statement 객체
+     * */
+    private void loggingSql(Statement ps) {
+        if (devMode) {
+            System.out.println(ps);
+        }
+    }
+
+    /*
+     * 전달받은 PreparedStatement에 인자를 채우고 리스트를 초기화
+     *
+     * @param ps PreparedStatement
+     * */
+    private void addParams(PreparedStatement ps) throws SQLException {
+        for (int i = 1; i <= params.size(); i++) {
+            ps.setObject(i, params.get(i - 1));
+        }
+        params.clear();
+    }
+
     public void closeConnection() {
         Connection conn = threadLocalConnection.get();
         if (conn != null) {
             try {
                 conn.close();
             } catch (SQLException e) {
-                throw new RuntimeException("커넥션 연결 실패 : " + e.getMessage(), e);
+                throw new RuntimeException("커넥션 연결 실패 : " + e.getMessage());
             } finally {
                 threadLocalConnection.remove();
             }
         }
     }
 
-
-    @Override
     public void startTransaction() {
         Connection conn = threadLocalConnection.get();
         try {
@@ -106,7 +128,6 @@ public class SimpleDb implements DataSource {
         }
     }
 
-    @Override
     public void rollback() {
         Connection conn = threadLocalConnection.get();
         if(conn != null){
@@ -119,7 +140,6 @@ public class SimpleDb implements DataSource {
         }
     }
 
-    @Override
     public void commit() {
         Connection conn = threadLocalConnection.get();
         if (conn != null) {

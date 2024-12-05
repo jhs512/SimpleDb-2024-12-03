@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
+import javax.sql.DataSource;
+import javax.xml.crypto.Data;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -14,15 +16,15 @@ public class Sql {
     private final Connection conn;
     private final StringBuilder sqlBuilder;
     private final List<Object> params;
-    private final boolean devMode;
     private final ObjectMapper objectMapper;
+    private final SimpleDb simpleDb;
 
-    public Sql(Connection conn, boolean devMode) {
+    public Sql(SimpleDb simpleDb) {
         this.sqlBuilder = new StringBuilder();
-        this.conn = conn;
-        this.params = new ArrayList<>();
-        this.devMode = devMode;
+        this.simpleDb = simpleDb;
+        this.conn = simpleDb.getConnection();
 
+        this.params = new ArrayList<>();
         // Java Date / Time 지원 모듈 등록
         this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
     }
@@ -67,7 +69,6 @@ public class Sql {
     public Sql appendIn(String query, Object... params) {
         String placeHolders = String.join(", ", Collections.nCopies(params.length, "?"));
         query = query.replace("?", placeHolders);
-
         sqlBuilder.append(" ").append(query);
         this.params.addAll(Arrays.asList(params));
         return this;
@@ -79,11 +80,11 @@ public class Sql {
      * @return   db로 부터 생성 된 id 값
      * */
     public long insert() {
+        return simpleDb.run(sqlBuilder.toString(), params);
         try (
             PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString(), Statement.RETURN_GENERATED_KEYS);
         ){
-            addParams(ps);
-            loggingSql(ps);
+
             return ps.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -100,8 +101,6 @@ public class Sql {
     public long update() {
         try {
             PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString());
-            addParams(ps);
-            loggingSql(ps);
             int rs = ps.executeUpdate();
             ps.close();
 
@@ -123,7 +122,6 @@ public class Sql {
             for (int i = 1; i <= params.size(); i++) {
                 ps.setObject(i, params.get(i - 1));
             }
-            loggingSql(ps);
             int rs = ps.executeUpdate();
             ps.close();
             return rs;
@@ -137,7 +135,6 @@ public class Sql {
     public List<Map<String, Object>> selectRows() {
         try {
             PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString());
-            loggingSql(ps);
             ResultSet rs = ps.executeQuery();
 
             List<Map<String, Object>> results = new ArrayList<>();
@@ -166,7 +163,6 @@ public class Sql {
     public <T> List<T> selectRows(Class<T> tClass) {
         try {
             PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString());
-            loggingSql(ps);
             ResultSet rs = ps.executeQuery();
             List<T> results = new ArrayList<>();
 
@@ -201,7 +197,6 @@ public class Sql {
     public Map<String, Object> selectRow() {
         try {
             PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString());
-            loggingSql(ps);
             ResultSet rs = ps.executeQuery();
             Map<String, Object> result = new HashMap<>();
 
@@ -236,7 +231,6 @@ public class Sql {
                 PreparedStatement ps = conn.prepareStatement(query);
                 ResultSet rs = ps.executeQuery();
         ){
-            loggingSql(ps);
             if (rs.next()) {
                 ObjectNode node = objectMapper.createObjectNode();
                 ResultSetMetaData metaData = rs.getMetaData();
@@ -268,7 +262,6 @@ public class Sql {
         try (
             Statement stmt = conn.createStatement()
         ) {
-            loggingSql(stmt);
             ResultSet rs = stmt.executeQuery(sqlBuilder.toString());
             LocalDateTime result = null;
             while (rs.next()) {
@@ -290,8 +283,6 @@ public class Sql {
         try (
             PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString())
         ) {
-            addParams(ps);
-            loggingSql(ps);
 
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
@@ -315,7 +306,6 @@ public class Sql {
                 PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString());
                 ResultSet rs = ps.executeQuery(sqlBuilder.toString());
         ) {
-            loggingSql(ps);
             if (rs.next()) {
                 return rs.getString("title");
             }
@@ -337,7 +327,6 @@ public class Sql {
                 PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString());
                 ResultSet rs = ps.executeQuery(sqlBuilder.toString());
         ) {
-            loggingSql(ps);
             boolean result = false;
 
             if (rs.next()) {
@@ -359,8 +348,6 @@ public class Sql {
         try (
                 PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString());
         ) {
-            addParams(ps);
-            loggingSql(ps);
             ResultSet rs = ps.executeQuery();
 
             List<Long> results = new ArrayList<>();
@@ -376,26 +363,7 @@ public class Sql {
         }
     }
 
-    /*
-     * 전달받은 PreparedStatement에 인자를 채우고 리스트를 초기화
-     *
-     * @param ps PreparedStatement
-     * */
-    private void addParams(PreparedStatement ps) throws SQLException {
-        for (int i = 1; i <= params.size(); i++) {
-            ps.setObject(i, params.get(i - 1));
-        }
-        params.clear();
-    }
 
-    /*
-     * devMode true 로 설정 시 생성된 sql문 출력
-     *
-     * @param ps Statement 객체
-     * */
-    private void loggingSql(Statement ps) {
-        if (devMode) {
-            System.out.println(ps);
-        }
-    }
+
+
 }
