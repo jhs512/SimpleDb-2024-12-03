@@ -1,5 +1,7 @@
 package org.example;
 
+import org.example.model.Article;
+
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -33,7 +35,7 @@ public class Sql {
         List<String> placeholder = Collections.nCopies(paramSize, "?");
         String result = String.join(", ", placeholder);
 
-        sb.append(sqlBit.replace("IN (?)", "IN "+ "(" + result + ")"));
+        sb.append(sqlBit.replace("?", result));
         return this;
     }
 
@@ -124,6 +126,49 @@ public class Sql {
         return rows;
     }
 
+    public <T> List<T> selectRows(Class<T> model) {
+
+        String sql = sb.toString();
+        List<T> rows = new ArrayList<>();
+        try (PreparedStatement pst = conn.prepareStatement(sql);
+             ResultSet rs = pst.executeQuery()) {
+
+            // T 에는 엔티티 객체
+            while (rs.next()) {
+                T article = mapToEntity(model, rs);
+                rows.add(article);
+
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to execute SQL : " + sql + " Error : " + e.getMessage(), e);
+        }
+        return rows;
+
+    }
+
+    private <T> T mapToEntity(Class<T> model, ResultSet rs) throws SQLException {
+        ResultSetMetaData metaData = rs.getMetaData();
+        int columnCount = metaData.getColumnCount();
+
+        T article = null;
+        try {
+            if (model == Article.class) {
+                int id = rs.getInt(1);
+                LocalDateTime createdDate = rs.getTimestamp(2).toLocalDateTime();
+                LocalDateTime modifiedDate = rs.getTimestamp(3).toLocalDateTime();
+                String tile = rs.getString(4);
+                String body = rs.getString(5);
+                boolean blind = rs.getBoolean(6);
+                article = (T) Article.of(id, tile, body, createdDate, modifiedDate, blind);
+            } else {
+                // 추후 스펙에 맞게 변경
+                return null;
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Error creating object from ResultSet: " + e.getMessage(), e);
+        }
+        return article;
+    }
 
     public Map<String, Object> selectRow() {
         String sql = sb.toString();
@@ -225,7 +270,7 @@ public class Sql {
         try (PreparedStatement pst = conn.prepareStatement(sql);
              ResultSet rs = pst.executeQuery()) {
 
-            if(rs.next()) {
+            if (rs.next()) {
                 return rs.getBoolean(1);
             } else {
                 throw new NoSuchElementException("Not Found Data");
@@ -237,4 +282,17 @@ public class Sql {
     }
 
 
+    public List<Long> selectLongs() {
+        String sql = sb.toString();
+        try (PreparedStatement pst = conn.prepareStatement(sql)) {
+            bindParameters(pst, params);
+
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to execute SQL : " + sql + " Error : " + e.getMessage(), e);
+        }
+
+
+        return null;
+    }
 }
