@@ -17,9 +17,11 @@ import java.util.stream.IntStream;
 public class Sql {
 
     private final Connection connection;
+
     public Sql(Connection connection) {
         this.connection = connection;
     }
+
     private final StringBuilder query = new StringBuilder();
     private final ArrayList<Object> params = new ArrayList<>();
 
@@ -41,19 +43,12 @@ public class Sql {
     }
 
     public long insert() {
-        try (PreparedStatement statement = connection.prepareStatement(query.toString(), PreparedStatement.RETURN_GENERATED_KEYS)) {
+        try (PreparedStatement statement = connection.prepareStatement(query.toString(),
+            PreparedStatement.RETURN_GENERATED_KEYS)) {
 
-            IntStream.range(0, params.size())
-                .forEach(i -> {
-                    try {
-                        statement.setString(i + 1, (String) params.get(i));
-                    } catch (SQLException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
-
+            queryBinding(statement);
             int result = statement.executeUpdate();
-            if(result > 0) {
+            if (result > 0) {
                 System.out.println("Create Article success");
                 try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
                     if (generatedKeys.next()) {
@@ -77,29 +72,28 @@ public class Sql {
 
     private long executeUpdateQuery() {
         long result;
-        try {
-            PreparedStatement statement = connection.prepareStatement(query.toString());
-
-            IntStream.range(0, params.size())
-                .forEach(i -> {
-                    try {
-                        if (params.get(i) instanceof Integer) {
-                            statement.setInt(i + 1, (Integer) params.get(i));
-                        } else {
-                            statement.setString(i + 1, (String) params.get(i));
-                        }
-                    } catch (SQLException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
-
+        try (PreparedStatement statement = connection.prepareStatement(query.toString())) {
+            queryBinding(statement);
             result = statement.executeUpdate();
-            statement.close();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-
         return result;
+    }
+
+    private void queryBinding(PreparedStatement statement) {
+        IntStream.range(0, params.size())
+            .forEach(i -> {
+                try {
+                    if (params.get(i) instanceof Integer) {
+                        statement.setInt(i + 1, (Integer) params.get(i));
+                    } else {
+                        statement.setString(i + 1, (String) params.get(i));
+                    }
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
+            });
     }
 
     public List<Map<String, Object>> selectRows() {
@@ -199,7 +193,7 @@ public class Sql {
     }
 
     public Long selectLong() {
-        if(query.toString().contains("?")) {
+        if (query.toString().contains("?")) {
             return executeQuery();
         }
         String[] split = query.toString().split(" ");
@@ -211,18 +205,7 @@ public class Sql {
         try {
             PreparedStatement statement = connection.prepareStatement(query.toString());
 
-            IntStream.range(0, params.size())
-                .forEach(i -> {
-                    try {
-                        if (params.get(i) instanceof Integer) {
-                            statement.setInt(i + 1, (Integer) params.get(i));
-                        } else {
-                            statement.setString(i + 1, (String) params.get(i));
-                        }
-                    } catch (SQLException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
+            queryBinding(statement);
 
             ResultSet resultSet = statement.executeQuery();
 
@@ -260,7 +243,7 @@ public class Sql {
                 });
 
             ResultSet resultSet = statement.executeQuery();
-            while(resultSet.next()) {
+            while (resultSet.next()) {
                 result.add(resultSet.getLong(1));
             }
 
@@ -282,11 +265,11 @@ public class Sql {
             PreparedStatement statement = connection.prepareStatement(query.toString());
             ResultSet resultSet = statement.executeQuery();
             if (resultSet.next()) {
-                if(type == Long.class) {
+                if (type == Long.class) {
                     result = type.cast(resultSet.getLong(columnName));
-                } else if(type == String.class) {
+                } else if (type == String.class) {
                     result = type.cast(resultSet.getString(columnName));
-                } else if(type == LocalDateTime.class) {
+                } else if (type == LocalDateTime.class) {
                     result = type.cast(resultSet.getTimestamp(columnName).toLocalDateTime());
                 } else if (type == Boolean.class) {
                     try {
