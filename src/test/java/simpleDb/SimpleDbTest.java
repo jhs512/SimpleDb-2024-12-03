@@ -30,18 +30,26 @@ public class SimpleDbTest {
         simpleDb.setDevMode(true);
 
         createArticleTable();
+        createArticleTrigger(); // 트리거 생성 추가
     }
-
+    private static void createArticleTrigger() {
+        simpleDb.run("""
+        CREATE TRIGGER before_article_insert
+        BEFORE INSERT ON article
+        FOR EACH ROW
+        BEGIN
+           INSERT INTO article_log (article_id, action, source, title, action_time)
+                                   VALUES (NEW.id, 'INSERT', NEW.source, NEW.title, NOW());
+        END
+    """);
+    }
     @BeforeEach
     public void beforeEach() {
         truncateArticleTable();
         makeArticleTestData();
     }
-
-    private static void createArticleTable() {
-        simpleDb.run("DROP TABLE IF EXISTS article");
-
-        simpleDb.run("""
+        /*
+simpleDb.run("""
                 CREATE TABLE article (
                     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
                     PRIMARY KEY(id),
@@ -50,6 +58,25 @@ public class SimpleDbTest {
                     title VARCHAR(100) NOT NULL,
                     `body` TEXT NOT NULL,
                     isBlind BIT(1) NOT NULL DEFAULT 0
+                )
+                """);
+
+
+         */
+
+    private static void createArticleTable() {
+        simpleDb.run("DROP TABLE IF EXISTS article");
+
+        simpleDb.run("""
+                CREATE TABLE article (
+                               id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                               PRIMARY KEY(id),
+                               createdDate DATETIME NOT NULL,
+                               modifiedDate DATETIME NOT NULL,
+                               title VARCHAR(100) NOT NULL,
+                               `body` TEXT NOT NULL,
+                               isBlind BIT(1) NOT NULL DEFAULT 0,
+                               source CHAR(1) NOT NULL DEFAULT 'G'
                 )
                 """);
     }
@@ -555,4 +582,41 @@ public class SimpleDbTest {
 
         System.out.println("Test passed: P_test_01 and P_test_02 DB에서 확인하세요.");
     }
+
+
+
+    @Test
+    @DisplayName("트리거와 프로시저로 삽입된 source 값 확인")
+    public void testSourceValueWithTriggerAndProcedure() {
+        Sql sql = simpleDb.genSql();
+
+        // 기본 삽입
+        sql.append("INSERT INTO article (createdDate, modifiedDate, title, body, isBlind)")
+                .append("VALUES (NOW(), NOW(), ?, ?, ?)", "Basic Insert", "Body for Basic", false)
+                .insert();
+
+        // 프로시저 삽입
+        sql.callProcedure("P_insert_test_data", "Procedure Insert", "Body for Procedure", false);
+
+        // 트리거 로그에서 기본 삽입 확인
+        Map<String, Object> basicLog = simpleDb.genSql()
+                .append("SELECT * FROM article_log WHERE title = ?", "Basic Insert")
+                .selectRow();
+        assertThat(basicLog).isNotNull();
+        assertThat(basicLog.get("source")).isEqualTo("G");
+        assertThat(basicLog.get("action")).isEqualTo("INSERT");
+        assertThat(basicLog.get("action_time")).isNotNull();
+
+
+        // 트리거 로그에서 프로시저 삽입 확인
+        Map<String, Object> procedureLog = simpleDb.genSql()
+                .append("SELECT * FROM article_log WHERE title = ?", "Procedure Insert")
+                .selectRow();
+        assertThat(procedureLog).isNotNull();
+        assertThat(procedureLog.get("source")).isEqualTo("P");
+        assertThat(procedureLog.get("action")).isEqualTo("INSERT");
+        assertThat(procedureLog.get("action_time")).isNotNull();
+    }
+
+
 }
