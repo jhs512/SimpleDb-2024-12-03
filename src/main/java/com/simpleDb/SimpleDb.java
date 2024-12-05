@@ -111,21 +111,7 @@ public class SimpleDb {
 
 	public List<Map<String, Object>> runSelectRows(String sql, List<Object> params) {
 		try {
-			List<Map<String, Object>> mapList = new LinkedList<>();
-
-			ResultSet resultSet = excuteSelect(sql, params);
-
-			ResultSetMetaData metaData = resultSet.getMetaData();
-
-			while (resultSet.next()) {
-				Map<String, Object> map = new HashMap<>();
-
-				for (int i = 0; i < metaData.getColumnCount(); i++) {
-					map.put(metaData.getColumnLabel(i + 1), resultSet.getObject(i + 1));
-				}
-
-				mapList.add(map);
-			}
+			List<Map<String, Object>> mapList = excuteSelect(sql, params);
 
 			return mapList;
 		} catch (SQLException e) {
@@ -135,37 +121,38 @@ public class SimpleDb {
 
 	public Map<String, Object> runSelectRow(String sql, List<Object> params) {
 		try {
-			ResultSet resultSet = excuteSelect(sql, params);
+			List<Map<String, Object>> mapList = excuteSelect(sql, params);
 
-			ResultSetMetaData metaData = resultSet.getMetaData();
-			System.out.println("metaData = " + metaData);
-
-			Map<String, Object> map = new HashMap<>();
-
-			while (resultSet.next()) {
-				for (int i = 0; i < metaData.getColumnCount(); i++) {
-					map.put(metaData.getColumnLabel(i + 1), resultSet.getObject(i + 1));
-				}
-			}
-
-			return map;
+			return mapList.get(0);
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
 		}
 
 	}
 
-	private ResultSet excuteSelect(String sql, List<Object> params) throws SQLException {
+	private List<Map<String, Object>> excuteSelect(String sql, List<Object> params) throws SQLException {
 		Connection connection = createConnection();
 		PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
 		setParams(params, preparedStatement);
-		ResultSet resultSet = preparedStatement.executeQuery();
 
+		ResultSet resultSet = preparedStatement.executeQuery();
+		ResultSetMetaData metaData = resultSet.getMetaData();
+
+		List<Map<String, Object>> mapList = new LinkedList<>();
+
+		while (resultSet.next()) {
+				Map<String, Object> map = new HashMap<>();
+
+				for (int i = 0; i < metaData.getColumnCount(); i++) {
+					map.put(metaData.getColumnLabel(i + 1), resultSet.getObject(i + 1));
+				}
+
+				mapList.add(map);
+			}
 		preparedStatement.close();
 		connection.close();
-
-		return resultSet;
+		return mapList;
 	}
 
 	public LocalDateTime runSelectDatetime(String sql, List<Object> params) {
