@@ -161,4 +161,21 @@ public class Sql {
 
 
     }
+
+    public Long selectLong() {
+
+        String sql = sb.toString();
+
+        try (PreparedStatement pst = conn.prepareStatement(sql);
+             ResultSet rs = pst.executeQuery()) {
+
+            if(rs.next() ){
+                return rs.getLong(1);
+            } else {
+                throw new NoSuchElementException("Not Found Data");
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to execute SQL : " + sql + " Error : " + e.getMessage(), e);
+        }
+    }
 }
