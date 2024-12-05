@@ -80,9 +80,9 @@ public class Sql {
         String sql = sb.toString();
         List<Map<String, Object>> rows = new ArrayList<>();
 
-        try (PreparedStatement pst = conn.prepareStatement(sql)) {
+        try (PreparedStatement pst = conn.prepareStatement(sql);
+             ResultSet rs = pst.executeQuery()) {
 
-            ResultSet rs = pst.executeQuery();
             while (rs.next()) {
 
                 Map<String, Object> row = new HashMap<>();
@@ -94,7 +94,7 @@ public class Sql {
                     Object content = rs.getObject(i);
 
                     if (content instanceof Timestamp) {
-                        content = ((Timestamp) content ).toLocalDateTime();
+                        content = ((Timestamp) content).toLocalDateTime();
                     }
 
                     row.put(columnName, content);
@@ -103,10 +103,62 @@ public class Sql {
             }
 
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Failed to execute SQL : " + sql + " Error : " + e.getMessage(), e);
         }
 
 
         return rows;
+    }
+
+
+    public Map<String, Object> selectRow() {
+        String sql = sb.toString();
+        Map<String, Object> row = new HashMap<>();
+
+        try (PreparedStatement pst = conn.prepareStatement(sql)) {
+            ResultSet rs = pst.executeQuery();
+
+            if (rs.next()) {
+
+                ResultSetMetaData metaData = rs.getMetaData();
+                int columnCount = metaData.getColumnCount();
+
+                for (int i = 1; i <= columnCount; i++) {
+                    String columnName = metaData.getColumnName(i);
+                    Object content = rs.getObject(i);
+
+                    if (content instanceof Timestamp) {
+                        content = ((Timestamp) content).toLocalDateTime();
+                    }
+                    row.put(columnName, content);
+                }
+            } else {
+                throw new NoSuchElementException("Not Found Data");
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to execute SQL : " + sql + " Error : " + e.getMessage(), e);
+        }
+        return row;
+    }
+
+    public LocalDateTime selectDatetime() {
+
+        String sql = sb.toString();
+
+        try (PreparedStatement pst = conn.prepareStatement(sql);
+             ResultSet rs = pst.executeQuery()) {
+
+            if (rs.next()) {
+                return rs.getTimestamp(1).toLocalDateTime();
+            } else {
+                throw new NoSuchElementException("Not Found Data");
+            }
+
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to execute SQL : " + sql + " Error : " + e.getMessage(), e);
+        }
+
+
     }
 }
