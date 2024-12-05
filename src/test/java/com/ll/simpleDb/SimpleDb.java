@@ -2,7 +2,7 @@ package com.ll.simpleDb;
 
 import java.sql.*;
 
-public class SimpleDb{
+public class SimpleDb {
     String url;
     String id;
     String pw;
@@ -11,10 +11,11 @@ public class SimpleDb{
     Connection con;
     boolean isDev;
     boolean autoCommit = true;
+
     SimpleDb(String url, String id, String pw, String dbName) {
-        this.url =url;
+        this.url = url;
         this.id = id;
-        this.pw =pw;
+        this.pw = pw;
         this.dbName = dbName;
         this.port = "3306";
         init();
@@ -29,35 +30,55 @@ public class SimpleDb{
             throw new RuntimeException(e);
         }
     }
+
     void run(String query) {
         this.genSql().append(query).create();
     }
-    void run(String query,String title,String body, boolean isBlind){
-        this.genSql().append(query,title,body,isBlind).insert();
+
+    void run(String query, String title, String body, boolean isBlind) {
+        this.genSql().append(query, title, body, isBlind).insert();
     }
-    void setDevMode(boolean isDev){
+
+    void setDevMode(boolean isDev) {
         this.isDev = isDev;
     }
-    void closeConnection(){
+
+    void closeConnection() {
         try {
             con.close();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
-    void rollback(){
+
+    void rollback() {
         try {
             con.rollback();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
-    void startTransaction(){
+    void commit(){
+        try {
+            con.commit();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    void startTransaction() {
         autoCommit = false;
     }
 
-    Sql genSql(){
-        return new Sql(con,autoCommit);
+    Sql genSql() {
+        try {
+            if (con.isClosed())
+                init();
+            return new Sql(con, autoCommit);
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 
