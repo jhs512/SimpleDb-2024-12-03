@@ -1,4 +1,4 @@
-package com.ll.simpleDb;
+package com.ll;
 
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;

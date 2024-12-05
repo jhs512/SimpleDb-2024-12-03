@@ -1,5 +1,6 @@
 package com.ll.simpleDb;
 
+import com.ll.Article;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -152,6 +153,27 @@ public class Sql {
             throw new RuntimeException(e);
         }
         return articles;
+    }
+
+    public Map<String, Object> selectRow() {
+        Map<String, Object> row = new HashMap<>();
+        try {
+            PreparedStatement statement = connection.prepareStatement(query.toString());
+            ResultSet resultSet = statement.executeQuery();
+
+            while (resultSet.next()) {
+                row.put("id", resultSet.getLong("id"));
+                row.put("title", resultSet.getString("title"));
+                row.put("body", resultSet.getString("body"));
+                row.put("createdDate", resultSet.getTimestamp("createdDate").toLocalDateTime());
+                row.put("modifiedDate", resultSet.getTimestamp("modifiedDate").toLocalDateTime());
+                row.put("isBlind", resultSet.getBoolean("isBlind"));
+            }
+            statement.close();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return row;
     }
 
     public Article selectRow(Class<Article> articleClass) {

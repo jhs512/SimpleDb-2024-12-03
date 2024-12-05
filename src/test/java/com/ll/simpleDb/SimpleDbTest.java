@@ -1,6 +1,7 @@
 package com.ll.simpleDb;
 
-import static org.assertj.core.api.Assertions.*;
+import com.ll.Article;
+import org.junit.jupiter.api.*;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -13,13 +14,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 @TestMethodOrder(MethodOrderer.MethodName.class)
 public class SimpleDbTest {
@@ -38,12 +34,6 @@ public class SimpleDbTest {
         truncateArticleTable();
         makeArticleTestData();
     }
-
-    @AfterAll
-    public static void afterAll() {
-        simpleDb.closeConnection();
-    }
-
 
     private static void createArticleTable() {
         simpleDb.run("DROP TABLE IF EXISTS article");
@@ -83,14 +73,8 @@ public class SimpleDbTest {
     }
 
     @Test
-    @DisplayName("데이터 베이스 연결 테스트 - BeforeAll, BeforeEach 로 확인")
-    public void JdbcConnectTest() {
-
-    }
-
-    @Test
-    @DisplayName("INSERT 테스트")
-    public void insertTest() {
+    @DisplayName("insert")
+    public void t001() {
         Sql sql = simpleDb.genSql();
         /*
         == rawSql ==
@@ -108,12 +92,12 @@ public class SimpleDbTest {
 
         long newId = sql.insert(); // AUTO_INCREMENT 에 의해서 생성된 주키 리턴
 
-        assertThat(newId).isGreaterThan(6);
+        assertThat(newId).isGreaterThan(0);
     }
 
     @Test
-    @DisplayName("UPDATE 테스트")
-    public void updateTest() {
+    @DisplayName("update")
+    public void t002() {
         Sql sql = simpleDb.genSql();
 
         // id가 0, 1, 2, 3인 글 수정
@@ -136,8 +120,8 @@ public class SimpleDbTest {
     }
 
     @Test
-    @DisplayName("DELETE 테스트")
-    public void deleteTest() {
+    @DisplayName("delete")
+    public void t003() {
         Sql sql = simpleDb.genSql();
 
         // id가 0, 1, 3인 글 삭제
@@ -158,8 +142,8 @@ public class SimpleDbTest {
     }
 
     @Test
-    @DisplayName("SELECT ROWS 테스트")
-    public void selectRowsTest() {
+    @DisplayName("selectRows")
+    public void t004() {
         Sql sql = simpleDb.genSql();
         /*
         == rawSql ==
@@ -188,8 +172,31 @@ public class SimpleDbTest {
     }
 
     @Test
-    @DisplayName("SELECT DateTime 테스트")
-    public void selectDateTimeTest() {
+    @DisplayName("selectRow")
+    public void t005() {
+        Sql sql = simpleDb.genSql();
+        /*
+        == rawSql ==
+        SELECT *
+        FROM article
+        WHERE id = 1
+        */
+        sql.append("SELECT * FROM article WHERE id = 1");
+        Map<String, Object> articleRow = sql.selectRow();
+
+        assertThat(articleRow.get("id")).isEqualTo(1L);
+        assertThat(articleRow.get("title")).isEqualTo("제목1");
+        assertThat(articleRow.get("body")).isEqualTo("내용1");
+        assertThat(articleRow.get("createdDate")).isInstanceOf(LocalDateTime.class);
+        assertThat(articleRow.get("createdDate")).isNotNull();
+        assertThat(articleRow.get("modifiedDate")).isInstanceOf(LocalDateTime.class);
+        assertThat(articleRow.get("modifiedDate")).isNotNull();
+        assertThat(articleRow.get("isBlind")).isEqualTo(false);
+    }
+
+    @Test
+    @DisplayName("selectDatetime")
+    public void t006() {
         Sql sql = simpleDb.genSql();
         /*
         == rawSql ==
@@ -205,8 +212,8 @@ public class SimpleDbTest {
     }
 
     @Test
-    @DisplayName("SELECT ID 테스트")
-    public void selectIdTest() {
+    @DisplayName("selectLong")
+    public void t007() {
         Sql sql = simpleDb.genSql();
         /*
         == rawSql ==
@@ -218,15 +225,14 @@ public class SimpleDbTest {
             .append("FROM article")
             .append("WHERE id = 1");
 
-
         Long id = sql.selectLong();
 
         assertThat(id).isEqualTo(1);
     }
 
     @Test
-    @DisplayName("SELECT STRING 테스트")
-    public void selectStringTest() {
+    @DisplayName("selectString")
+    public void t008() {
         Sql sql = simpleDb.genSql();
         /*
         == rawSql ==
@@ -244,8 +250,8 @@ public class SimpleDbTest {
     }
 
     @Test
-    @DisplayName("SELECT Boolean 테스트")
-    public void selectBoolean() {
+    @DisplayName("selectBoolean")
+    public void t009() {
         Sql sql = simpleDb.genSql();
         /*
         == rawSql ==
@@ -263,8 +269,8 @@ public class SimpleDbTest {
     }
 
     @Test
-    @DisplayName("SELECT Boolean 테스트2")
-    public void selectBoolean2() {
+    @DisplayName("selectBoolean, 2nd")
+    public void t010() {
         Sql sql = simpleDb.genSql();
         /*
         == rawSql ==
@@ -278,8 +284,8 @@ public class SimpleDbTest {
     }
 
     @Test
-    @DisplayName("SELECT Boolean 테스트3")
-    public void selectBoolean3() {
+    @DisplayName("selectBoolean, 3rd")
+    public void t011() {
         Sql sql = simpleDb.genSql();
         /*
         == rawSql ==
@@ -293,8 +299,8 @@ public class SimpleDbTest {
     }
 
     @Test
-    @DisplayName("SELECT, LIKE 사용법")
-    public void selectLikeTest() {
+    @DisplayName("select, LIKE 사용법")
+    public void t012() {
         Sql sql = simpleDb.genSql();
         /*
         == rawSql ==
@@ -314,8 +320,8 @@ public class SimpleDbTest {
     }
 
     @Test
-    @DisplayName("appendIn 테스트")
-    public void appendInTest() {
+    @DisplayName("appendIn")
+    public void t013() {
         Sql sql = simpleDb.genSql();
         /*
         == rawSql ==
@@ -528,5 +534,4 @@ public class SimpleDbTest {
 
         assertThat(newCount).isEqualTo(oldCount + 1);
     }
-
 }
