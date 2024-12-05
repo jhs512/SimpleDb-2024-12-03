@@ -319,4 +319,22 @@ public class SimpleDb {
 			throw new RuntimeException(e);
 		}
 	}
+
+	public void startTransaction() {
+		Connection connection = getConnection();
+		try {
+			connection.setAutoCommit(false);
+		} catch (SQLException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	public void rollback() {
+		Connection connection = getConnection();
+		try {
+			connection.rollback();
+		} catch (SQLException e) {
+			throw new RuntimeException(e);
+		}
+	}
 }
