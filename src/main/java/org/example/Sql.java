@@ -153,7 +153,7 @@ public class Sql {
         T article = null;
         try {
             if (model == Article.class) {
-                int id = rs.getInt(1);
+                Long id = rs.getLong(1);
                 LocalDateTime createdDate = rs.getTimestamp(2).toLocalDateTime();
                 LocalDateTime modifiedDate = rs.getTimestamp(3).toLocalDateTime();
                 String tile = rs.getString(4);
@@ -199,6 +199,26 @@ public class Sql {
         }
         return row;
     }
+
+    public <T> T selectRow(Class<T> model) {
+        String sql = sb.toString();
+
+        try (PreparedStatement pst = conn.prepareStatement(sql)) {
+            ResultSet rs = pst.executeQuery();
+
+            if (rs.next()) {
+                ResultSetMetaData metaData = rs.getMetaData();
+                int columnCount = metaData.getColumnCount();
+
+                return mapToEntity(model, rs);
+            } else {
+                throw new NoSuchElementException("Not Found Data");
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to execute SQL : " + sql + " Error : " + e.getMessage(), e);
+        }
+    }
+
 
     public LocalDateTime selectDatetime() {
 
