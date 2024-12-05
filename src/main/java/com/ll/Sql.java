@@ -79,9 +79,9 @@ public class Sql {
      * @return   db로 부터 생성 된 id 값
      * */
     public long insert() {
-        try {
-
+        try (
             PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString(), Statement.RETURN_GENERATED_KEYS);
+        ){
             addParams(ps);
             loggingSql(ps);
             return ps.executeUpdate();
@@ -266,7 +266,7 @@ public class Sql {
      * */
     public LocalDateTime selectDatetime() {
         try (
-                Statement stmt = conn.createStatement()
+            Statement stmt = conn.createStatement()
         ) {
             loggingSql(stmt);
             ResultSet rs = stmt.executeQuery(sqlBuilder.toString());
@@ -288,10 +288,11 @@ public class Sql {
      * */
     public Long selectLong() {
         try (
-                PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString())
+            PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString())
         ) {
             addParams(ps);
             loggingSql(ps);
+
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
                 return rs.getLong(1);

@@ -12,7 +12,6 @@ public class SimpleDb implements DataSource {
     private String password;
     private final String db;
     private String jdbcUrl;
-
     private Connection conn;
     @Setter
     private boolean devMode;
@@ -73,7 +72,7 @@ public class SimpleDb implements DataSource {
         try {
             return DriverManager.getConnection(jdbcUrl, user, password);
         } catch (SQLException e) {
-            throw new RuntimeException("Connection 생성 실패 : " + e.getMessage(), e);
+            throw new RuntimeException("Connection 생성 실패 : " + e.getMessage());
         }
     });
 
@@ -81,29 +80,29 @@ public class SimpleDb implements DataSource {
         return threadLocalConnection.get();
     }
 
-    @Override
     public void closeConnection() {
         Connection conn = threadLocalConnection.get();
         if (conn != null) {
             try {
                 conn.close();
             } catch (SQLException e) {
-                throw new RuntimeException("커넥션 종료 실패: " + e.getMessage(), e);
+                throw new RuntimeException("커넥션 연결 실패 : " + e.getMessage(), e);
             } finally {
                 threadLocalConnection.remove();
             }
         }
     }
 
+
     @Override
     public void startTransaction() {
         Connection conn = threadLocalConnection.get();
-        if (conn != null){
-            try{
+        try {
+            if (conn.getAutoCommit()) {
                 conn.setAutoCommit(false);
-            }catch(SQLException e){
-                throw new RuntimeException("트랜잭션 시작 실패 : " + e);
             }
+        } catch (SQLException e) {
+            throw new RuntimeException("트랜잭션 시작 실패 : " + e);
         }
     }
 
@@ -113,6 +112,7 @@ public class SimpleDb implements DataSource {
         if(conn != null){
             try{
                 conn.rollback();
+                conn.setAutoCommit(true);
             }catch(SQLException e){
                 throw new RuntimeException("롤백 실패 : " + e);
             }
@@ -120,12 +120,15 @@ public class SimpleDb implements DataSource {
     }
 
     @Override
-    public void commit(){
+    public void commit() {
         Connection conn = threadLocalConnection.get();
-        try {
-            conn.commit();
-        } catch (SQLException e) {
-            throw new RuntimeException("커밋 실패 : " + e);
+        if (conn != null) {
+            try {
+                conn.commit();
+                conn.setAutoCommit(true);
+            } catch (SQLException e) {
+                throw new RuntimeException("커밋 실패 : " + e);
+            }
         }
     }
 }

@@ -21,7 +21,7 @@ public class Article {
     private LocalDateTime createdDate;
     private LocalDateTime modifiedDate;
 
-    // TODO: 어노테이션 제거하면 jackson 쓸때 왜 불일치 문제가 뜰까요?
+    // TODO: 어노테이션 제거하면 jackson 쓸때  불일치 문제..
     @JsonProperty("isBlind")
     private boolean isBlind;
 
