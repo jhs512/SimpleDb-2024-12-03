@@ -68,6 +68,9 @@ public class Sql {
 		return simpleDb.runSelectRow(sb.toString(), params);
 	}
 
+	public <T>T selectRow(Class<T> clazz) {
+		return simpleDb.runSelectRow(sb.toString(), clazz);
+	}
 	public LocalDateTime selectDatetime() {
 		return simpleDb.runSelectDatetime(sb.toString(), params);
 	}
