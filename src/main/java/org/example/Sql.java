@@ -2,6 +2,7 @@ package org.example;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Sql {
     private String query = "";
@@ -70,6 +71,13 @@ public class Sql {
 
     public List<Long> selectLongs() {
         return db.selectLongs(query, getParamsArray());
+    }
+
+    public List<Article> selectRows(Class c) {
+        return db.selectRows(query, c, getParamsArray())
+                .stream()
+                .map(object -> (Article) object)
+                .collect(Collectors.toList());
     }
 
     public Article selectRow(Class c) {

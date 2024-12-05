@@ -129,6 +129,45 @@ public class SimpleDb {
         return null;
     }
 
+    public List<Object> selectRows(String query, Class c, Object... params) {
+        try {
+            PreparedStatement preparedStatement = genPreparedStatement(query, params);
+            ResultSet rs = preparedStatement.executeQuery();
+            List<Object> result = new ArrayList<>();
+            while (rs.next()) {
+                Object object = c.getConstructor().newInstance();
+
+                for (Field field : c.getDeclaredFields()) {
+                    field.setAccessible(true);
+                    String type = field.getType().getSimpleName();
+                    String fieldName = field.getName();
+
+                    switch (type) {
+                        case "Long" -> {
+                            field.set(object, rs.getLong(fieldName));
+                        }
+                        case "String" -> {
+                            field.set(object, rs.getString(fieldName));
+                        }
+                        case "LocalDateTime" -> {
+                            field.set(object, rs.getTimestamp(fieldName).toLocalDateTime());
+                        }
+                        case "Boolean" -> {
+                            field.set(object, rs.getBoolean(fieldName));
+                        }
+                    }
+                }
+
+                result.add(object);
+            }
+
+            return result;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     public Map<String, Object> selectRow(String query, Object... params) {
         try {
             PreparedStatement preparedStatement = genPreparedStatement(query, params);
