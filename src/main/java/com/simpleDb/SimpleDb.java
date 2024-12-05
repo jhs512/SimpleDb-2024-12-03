@@ -137,6 +137,16 @@ public class SimpleDb {
 		}
 	}
 
+	public <T> T runSelectRow(String sql, Class<T> clazz) {
+		T result = null;
+		List<T> t = runSelectRows(sql, clazz);
+		if (t.isEmpty()) {
+			throw new RuntimeException();
+		}
+		result = t.get(0);
+		return result;
+	}
+
 	public <T>List<T> runSelectRows(String sql, Class<T> clazz) {
 		List<T> mapList = new ArrayList<>();
 		try {
