@@ -337,4 +337,14 @@ public class SimpleDb {
 			throw new RuntimeException(e);
 		}
 	}
+
+	public void commit() {
+		Connection connection = getConnection();
+		try {
+			connection.commit();
+		} catch (SQLException e) {
+			rollback();
+			throw new RuntimeException();
+		}
+	}
 }
