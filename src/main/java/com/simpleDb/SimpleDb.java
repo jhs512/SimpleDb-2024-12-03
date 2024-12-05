@@ -443,6 +443,7 @@ public class SimpleDb {
 		Connection connection = getConnection();
 		try {
 			connection.rollback();
+			connection.setAutoCommit(true);
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
 		}
@@ -455,6 +456,7 @@ public class SimpleDb {
 		Connection connection = getConnection();
 		try {
 			connection.commit();
+			connection.setAutoCommit(true);
 		} catch (SQLException e) {
 			rollback();
 			throw new RuntimeException();
