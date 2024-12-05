@@ -68,7 +68,7 @@ public class Sql {
 
         String sql = sb.toString();
 
-        try (PreparedStatement pst = conn.prepareStatement(sql);) {
+        try (PreparedStatement pst = conn.prepareStatement(sql)) {
             bindParameters(pst, params);
             return pst.executeUpdate();
         } catch (SQLException e) {
@@ -162,23 +162,28 @@ public class Sql {
 
     }
 
+    // todo param 이 없어도 동작하고 있어도 동작해야함
     public Long selectLong() {
 
         String sql = sb.toString();
 
-        try (PreparedStatement pst = conn.prepareStatement(sql);
-             ResultSet rs = pst.executeQuery()) {
+        try (PreparedStatement pst = conn.prepareStatement(sql)) {
 
-            if (rs.next()) {
-                return rs.getLong(1);
-            } else {
-                throw new NoSuchElementException("Not Found Data");
+            if (!params.isEmpty()) {
+                bindParameters(pst, params);
+            }
+
+            try (ResultSet rs = pst.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getLong(1);
+                } else {
+                    throw new NoSuchElementException("Not Found Data");
+                }
             }
         } catch (SQLException e) {
             throw new RuntimeException("Failed to execute SQL : " + sql + " Error : " + e.getMessage(), e);
         }
     }
-
 
     public String selectString() {
 
