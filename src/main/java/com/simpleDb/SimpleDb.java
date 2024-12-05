@@ -31,14 +31,15 @@ public class SimpleDb {
 	private String password;
 	private Boolean devMode;
 	private final ObjectMapper objectMapper;
+	private final ThreadLocal<Connection> threadLocal = new ThreadLocal<>();
 
 	public SimpleDb(String url, String username, String password, String database) {
 		this.url = URL_PREFIX + url + DATABASE_PORT + database;
 		this.username = username;
 		this.password = password;
-		 objectMapper = new ObjectMapper()
-			 .registerModule(new JavaTimeModule())
-			 .setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
+		objectMapper = new ObjectMapper()
+			.registerModule(new JavaTimeModule())
+			.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
 	}
 
 	public void setDevMode(Boolean devMode) {
@@ -52,6 +53,17 @@ public class SimpleDb {
 	private void printSql(PreparedStatement preparedStatement) {
 		if (devMode) {
 			System.out.println(preparedStatement.toString());
+		}
+	}
+
+	private Connection getConnection() {
+		try {
+			if (threadLocal.get() == null || threadLocal.get().isClosed()) {
+				threadLocal.set(createConnection());
+			}
+			return threadLocal.get();
+		} catch (SQLException e) {
+			throw new RuntimeException(e);
 		}
 	}
 
@@ -77,7 +89,7 @@ public class SimpleDb {
 
 	private long excute(String sql, List<Object> params, int generatedKey) {
 		try {
-			Connection connection = createConnection();
+			Connection connection = getConnection();
 
 			PreparedStatement preparedStatement = connection.prepareStatement(sql, generatedKey);
 
@@ -96,9 +108,6 @@ public class SimpleDb {
 				result = preparedStatement.executeUpdate();
 			}
 			printSql(preparedStatement);
-
-			preparedStatement.close();
-			connection.close();
 
 			return result;
 
@@ -147,7 +156,7 @@ public class SimpleDb {
 		return result;
 	}
 
-	public <T>List<T> runSelectRows(String sql, Class<T> clazz) {
+	public <T> List<T> runSelectRows(String sql, Class<T> clazz) {
 		List<T> mapList = new ArrayList<>();
 		try {
 			mapList = excuteSelect(sql, clazz);
@@ -157,8 +166,8 @@ public class SimpleDb {
 		return mapList;
 	}
 
-	private <T>List<T> excuteSelect(String sql, Class<T> clazz) throws SQLException {
-		Connection connection = createConnection();
+	private <T> List<T> excuteSelect(String sql, Class<T> clazz) throws SQLException {
+		Connection connection = getConnection();
 		PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
 		ResultSet resultSet = preparedStatement.executeQuery();
@@ -166,20 +175,18 @@ public class SimpleDb {
 
 		List<T> list = new LinkedList<>();
 		while (resultSet.next()) {
-				Map<String, Object> map = new HashMap<>();
-				for (int i = 0; i < metaData.getColumnCount(); i++) {
-					map.put(metaData.getColumnLabel(i + 1), resultSet.getObject(i + 1));
-				}
-				list.add(objectMapper.convertValue(map, clazz));
+			Map<String, Object> map = new HashMap<>();
+			for (int i = 0; i < metaData.getColumnCount(); i++) {
+				map.put(metaData.getColumnLabel(i + 1), resultSet.getObject(i + 1));
 			}
-		preparedStatement.close();
-		connection.close();
+			list.add(objectMapper.convertValue(map, clazz));
+		}
 
 		return list;
 	}
 
 	private List<Map<String, Object>> excuteSelect(String sql, List<Object> params) throws SQLException {
-		Connection connection = createConnection();
+		Connection connection = getConnection();
 		PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
 		setParams(params, preparedStatement);
@@ -190,16 +197,15 @@ public class SimpleDb {
 		List<Map<String, Object>> mapList = new LinkedList<>();
 
 		while (resultSet.next()) {
-				Map<String, Object> map = new HashMap<>();
+			Map<String, Object> map = new HashMap<>();
 
-				for (int i = 0; i < metaData.getColumnCount(); i++) {
-					map.put(metaData.getColumnLabel(i + 1), resultSet.getObject(i + 1));
-				}
-
-				mapList.add(map);
+			for (int i = 0; i < metaData.getColumnCount(); i++) {
+				map.put(metaData.getColumnLabel(i + 1), resultSet.getObject(i + 1));
 			}
-		preparedStatement.close();
-		connection.close();
+
+			mapList.add(map);
+		}
+
 		return mapList;
 	}
 
@@ -301,5 +307,16 @@ public class SimpleDb {
 		}
 
 		return result;
+	}
+
+	public void closeConnection() {
+		Connection connection = threadLocal.get();
+		try {
+			if (connection != null || !connection.isClosed()) {
+				connection.close();
+			}
+		} catch (SQLException e) {
+			throw new RuntimeException(e);
+		}
 	}
 }
