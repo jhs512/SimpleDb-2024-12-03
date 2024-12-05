@@ -63,4 +63,6 @@ public class SimpleDb {
     }
 
 
+    public void closeConnection() {
+    }
 }
