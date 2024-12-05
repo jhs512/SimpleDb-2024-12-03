@@ -96,33 +96,10 @@ public class SimpleDb {
     public Object selectRow(String query, Class c, Object... params) {
         try {
             PreparedStatement preparedStatement = genPreparedStatement(query, params);
-
             ResultSet rs = preparedStatement.executeQuery();
-            Object object = c.getConstructor().newInstance();
             if (rs.next()) {
-                for (Field field : c.getDeclaredFields()) {
-                    field.setAccessible(true);
-                    String type = field.getType().getSimpleName();
-                    String fieldName = field.getName();
-
-                    switch (type) {
-                        case "Long" -> {
-                            field.set(object, rs.getLong(fieldName));
-                        }
-                        case "String" -> {
-                            field.set(object, rs.getString(fieldName));
-                        }
-                        case "LocalDateTime" -> {
-                            field.set(object, rs.getTimestamp(fieldName).toLocalDateTime());
-                        }
-                        case "Boolean" -> {
-                            field.set(object, rs.getBoolean(fieldName));
-                        }
-                    }
-                }
+                return genObject(c, rs);
             }
-
-            return object;
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -135,30 +112,7 @@ public class SimpleDb {
             ResultSet rs = preparedStatement.executeQuery();
             List<Object> result = new ArrayList<>();
             while (rs.next()) {
-                Object object = c.getConstructor().newInstance();
-
-                for (Field field : c.getDeclaredFields()) {
-                    field.setAccessible(true);
-                    String type = field.getType().getSimpleName();
-                    String fieldName = field.getName();
-
-                    switch (type) {
-                        case "Long" -> {
-                            field.set(object, rs.getLong(fieldName));
-                        }
-                        case "String" -> {
-                            field.set(object, rs.getString(fieldName));
-                        }
-                        case "LocalDateTime" -> {
-                            field.set(object, rs.getTimestamp(fieldName).toLocalDateTime());
-                        }
-                        case "Boolean" -> {
-                            field.set(object, rs.getBoolean(fieldName));
-                        }
-                    }
-                }
-
-                result.add(object);
+                result.add(genObject(c, rs));
             }
 
             return result;
@@ -273,6 +227,33 @@ public class SimpleDb {
         }
 
         return preparedStatement;
+    }
+
+    private Object genObject(Class c, ResultSet rs) throws Exception {
+        Object object = c.getConstructor().newInstance();
+
+        for (Field field : c.getDeclaredFields()) {
+            field.setAccessible(true);
+            String type = field.getType().getSimpleName();
+            String fieldName = field.getName();
+
+            switch (type) {
+                case "Long" -> {
+                    field.set(object, rs.getLong(fieldName));
+                }
+                case "String" -> {
+                    field.set(object, rs.getString(fieldName));
+                }
+                case "LocalDateTime" -> {
+                    field.set(object, rs.getTimestamp(fieldName).toLocalDateTime());
+                }
+                case "Boolean" -> {
+                    field.set(object, rs.getBoolean(fieldName));
+                }
+            }
+        }
+
+        return object;
     }
 
     @FunctionalInterface
