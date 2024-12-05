@@ -2,10 +2,7 @@ package com.ll;
 
 import lombok.Setter;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
+import java.sql.*;
 import java.util.List;
 
 @Setter
@@ -17,7 +14,8 @@ public class SimpleDb {
     private final String dbName;
     private final String dbUrl;
     private boolean devMode;
-    private static ThreadLocal<List<String>> threadLocalList;
+    private ThreadLocal<Connection> threadLocalConnection;
+
 
 
     public SimpleDb(String url, String username, String password, String dbName) {
@@ -28,8 +26,10 @@ public class SimpleDb {
         dbUrl = "jdbc:mysql://" + url + "/" + dbName;
     }
 
+
+
     public Sql genSql() {
-        return new Sql(dbUrl, username, password);
+        return new Sql(dbUrl, username, password, threadLocalConnection);
     }
 
     public void run(String sql, Object... args) {
@@ -70,6 +70,49 @@ public class SimpleDb {
         }
     }
 
+    public void startTransaction() {
+            threadLocalConnection = ThreadLocal.withInitial(() -> {
+                try {
+                    // Create a new database connection for the current thread
+                    Connection connection = DriverManager.getConnection(dbUrl, username, password);
+                    connection.setAutoCommit(false);
+                    return connection;
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }});
+    }
+
+    public void commit() {
+        try {
+            threadLocalConnection.get().commit();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } finally {
+            close();
+            threadLocalConnection = null;
+        }
+    }
+
+    public void rollback() {
+        try {
+            threadLocalConnection.get().rollback();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } finally {
+            close();
+            threadLocalConnection = null;
+        }
+    }
+
+    public void close() {
+        if (threadLocalConnection != null) {
+            try {
+                threadLocalConnection.get().close();
+            } catch (SQLException e) {
+                throw new RuntimeException("Failed to close database connection", e);
+            }
+        }
+    }
 
     public void closeConnection() {
     }

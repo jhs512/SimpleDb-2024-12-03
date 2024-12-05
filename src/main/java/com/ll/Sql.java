@@ -19,17 +19,20 @@ public class Sql {
     String rawStmt;
     List<Object> args;
     static final ObjectMapper objectMapper = new ObjectMapper();
+    ThreadLocal<Connection> threadLocalConnection;
 
     static {
         objectMapper.registerModule(new JavaTimeModule());
     }
 
-    public Sql(String dbUrl, String username, String password) {
+
+    public Sql(String dbUrl, String username, String password, ThreadLocal<Connection> threadLocalConnection) {
         rawStmt = "";
         args = new ArrayList<>();
         this.dbUrl = dbUrl;
         this.username = username;
         this.password = password;
+        this.threadLocalConnection = threadLocalConnection;
     }
 
     public Sql appendIn(String segment, Object... objs) {
@@ -55,14 +58,14 @@ public class Sql {
     }
 
     private String extractParentheses(String query) {
-        Pattern pattern = Pattern.compile("\\((.*?)\\)");
-        Matcher matcher = pattern.matcher(query);
+        int start = query.indexOf("(");
+        int end = query.lastIndexOf(")");
 
-        if (matcher.find()) {
-            return matcher.group(1); // Return the content inside parentheses
-        } else {
-            throw new RuntimeException("Format Error: " + query);
+        if (start == -1 || end == -1 || start > end) {
+            throw new RuntimeException("Format Error: No matching parentheses in " + query);
         }
+
+        return query.substring(start + 1, end).trim();
     }
 
     public Sql append(String segment, Object... objs) {
@@ -93,7 +96,9 @@ public class Sql {
         PreparedStatement statement = null;
 
         try {
-            connection = DriverManager.getConnection(dbUrl, username, password);
+            connection = threadLocalConnection == null ?
+                    DriverManager.getConnection(dbUrl, username, password) : threadLocalConnection.get();
+
             statement = connection.prepareStatement(rawStmt);
 
             for (int i=0; i < args.size(); ++i) {
@@ -107,7 +112,7 @@ public class Sql {
         } finally {
             if (connection != null) {
                 try {
-                    connection.close();
+                    if (threadLocalConnection == null) connection.close();
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 };
@@ -115,7 +120,7 @@ public class Sql {
 
             if (statement != null) {
                 try {
-                    connection.close();
+                    statement.close();
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 };
@@ -209,7 +214,6 @@ public class Sql {
                 while (resultSet.next()) {
                     rows.add(columnToMap(resultSet));
                 }
-
                 return rows;
             }
         });
@@ -241,12 +245,14 @@ public class Sql {
 
     private <T> T selectTemplate(SelectResultGetter<T> selectResultGetter) {
         Connection connection = null;
+
         PreparedStatement statement = null;
         ResultSet resultSet = null;
 
 
         try {
-            connection = DriverManager.getConnection(dbUrl, username, password);
+            connection = threadLocalConnection == null ?
+                    DriverManager.getConnection(dbUrl, username, password) : threadLocalConnection.get();
             statement = connection.prepareStatement(rawStmt);
 
             for (int i=0; i < args.size(); ++i) {
@@ -261,7 +267,7 @@ public class Sql {
         } finally {
             if (connection != null) {
                 try {
-                    connection.close();
+                    if (threadLocalConnection == null) connection.close();
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 };
@@ -269,7 +275,7 @@ public class Sql {
 
             if (statement != null) {
                 try {
-                    connection.close();
+                    statement.close();
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 };
