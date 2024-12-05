@@ -197,4 +197,22 @@ public class Sql {
         }
 
     }
+
+    public Boolean selectBoolean() {
+
+        String sql = sb.toString();
+
+        try (PreparedStatement pst = conn.prepareStatement(sql);
+             ResultSet rs = pst.executeQuery()) {
+
+            if(rs.next()) {
+                return rs.getBoolean(1);
+            } else {
+                throw new NoSuchElementException("Not Found Data");
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to execute SQL : " + sql + " Error : " + e.getMessage(), e);
+        }
+    }
 }
