@@ -1,3 +1,4 @@
+import org.example.Article;
 import org.example.SimpleDb;
 import org.example.Sql;
 import org.junit.jupiter.api.*;
@@ -352,5 +353,30 @@ public class SimpleDbTest {
         List<Long> foundIds = sql.selectLongs();
 
         assertThat(foundIds).isEqualTo(Arrays.stream(ids).toList());
+    }
+
+    @Test
+    @DisplayName("selectRow, Article")
+    public void t016() throws Exception {
+        Sql sql = simpleDb.genSql();
+        /*
+        == rawSql ==
+        SELECT *
+        FROM article
+        WHERE id = 1
+        */
+        sql.append("SELECT * FROM article WHERE id = 1");
+        Article article = sql.selectRow(Article.class);
+
+        Long id = 1L;
+
+        assertThat(article.getId()).isEqualTo(id);
+        assertThat(article.getTitle()).isEqualTo("제목%d".formatted(id));
+        assertThat(article.getBody()).isEqualTo("내용%d".formatted(id));
+        assertThat(article.getCreatedDate()).isInstanceOf(LocalDateTime.class);
+        assertThat(article.getCreatedDate()).isNotNull();
+        assertThat(article.getModifiedDate()).isInstanceOf(LocalDateTime.class);
+        assertThat(article.getModifiedDate()).isNotNull();
+        assertThat(article.isBlind()).isEqualTo(false);
     }
 }

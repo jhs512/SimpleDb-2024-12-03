@@ -72,6 +72,10 @@ public class Sql {
         return db.selectLongs(query, getParamsArray());
     }
 
+    public Article selectRow(Class c) {
+        return (Article) db.selectRow(query, c, getParamsArray());
+    }
+
     private Object[] getParamsArray() {
         return params.toArray();
     }

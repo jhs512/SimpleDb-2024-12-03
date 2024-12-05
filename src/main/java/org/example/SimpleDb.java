@@ -1,5 +1,7 @@
 package org.example;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -86,6 +88,42 @@ public class SimpleDb {
 
             return results;
         } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public Object selectRow(String query, Class c, Object... params) {
+        try {
+            PreparedStatement preparedStatement = genPreparedStatement(query, params);
+
+            ResultSet rs = preparedStatement.executeQuery();
+            Object object = c.getConstructor().newInstance();
+            if (rs.next()) {
+                for (Field field : c.getDeclaredFields()) {
+                    field.setAccessible(true);
+                    String type = field.getType().getSimpleName();
+                    String fieldName = field.getName();
+
+                    switch (type) {
+                        case "Long" -> {
+                            field.set(object, rs.getLong(fieldName));
+                        }
+                        case "String" -> {
+                            field.set(object, rs.getString(fieldName));
+                        }
+                        case "LocalDateTime" -> {
+                            field.set(object, rs.getTimestamp(fieldName).toLocalDateTime());
+                        }
+                        case "Boolean" -> {
+                            field.set(object, rs.getBoolean(fieldName));
+                        }
+                    }
+                }
+            }
+
+            return object;
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return null;
