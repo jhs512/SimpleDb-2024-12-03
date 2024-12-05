@@ -17,6 +17,10 @@ import java.util.Map;
 
 import javax.sql.DataSource;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.sql.Sql;
 
 public class SimpleDb {
@@ -26,11 +30,15 @@ public class SimpleDb {
 	private String username;
 	private String password;
 	private Boolean devMode;
+	private final ObjectMapper objectMapper;
 
 	public SimpleDb(String url, String username, String password, String database) {
 		this.url = URL_PREFIX + url + DATABASE_PORT + database;
 		this.username = username;
 		this.password = password;
+		 objectMapper = new ObjectMapper()
+			 .registerModule(new JavaTimeModule())
+			 .setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
 	}
 
 	public void setDevMode(Boolean devMode) {
@@ -127,7 +135,37 @@ public class SimpleDb {
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
 		}
+	}
 
+	public <T>List<T> runSelectRows(String sql, Class<T> clazz) {
+		List<T> mapList = new ArrayList<>();
+		try {
+			mapList = excuteSelect(sql, clazz);
+		} catch (SQLException e) {
+			throw new RuntimeException(e);
+		}
+		return mapList;
+	}
+
+	private <T>List<T> excuteSelect(String sql, Class<T> clazz) throws SQLException {
+		Connection connection = createConnection();
+		PreparedStatement preparedStatement = connection.prepareStatement(sql);
+
+		ResultSet resultSet = preparedStatement.executeQuery();
+		ResultSetMetaData metaData = resultSet.getMetaData();
+
+		List<T> list = new LinkedList<>();
+		while (resultSet.next()) {
+				Map<String, Object> map = new HashMap<>();
+				for (int i = 0; i < metaData.getColumnCount(); i++) {
+					map.put(metaData.getColumnLabel(i + 1), resultSet.getObject(i + 1));
+				}
+				list.add(objectMapper.convertValue(map, clazz));
+			}
+		preparedStatement.close();
+		connection.close();
+
+		return list;
 	}
 
 	private List<Map<String, Object>> excuteSelect(String sql, List<Object> params) throws SQLException {

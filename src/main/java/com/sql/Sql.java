@@ -38,7 +38,7 @@ public class Sql {
 		}
 
 		sb.deleteCharAt(sb.length() - 1);
-		sb.append(")");
+		sb.append(") ");
 
 		for (Object param : params) {
 			this.params.add(param);
@@ -58,6 +58,10 @@ public class Sql {
 
 	public List<Map<String, Object>> selectRows() {
 		return simpleDb.runSelectRows(sb.toString(), params);
+	}
+
+	public <T>List<T> selectRows(Class<T> clazz) {
+		return simpleDb.runSelectRows(sb.toString(), clazz);
 	}
 
 	public Map<String, Object> selectRow() {
