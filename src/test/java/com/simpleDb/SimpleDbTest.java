@@ -16,6 +16,8 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import java.time.temporal.ChronoUnit;
+
+import com.article.Article;
 import com.sql.Sql;
 
 @TestMethodOrder(MethodOrderer.MethodName.class)
