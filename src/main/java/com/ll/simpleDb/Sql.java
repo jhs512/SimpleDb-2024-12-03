@@ -16,7 +16,7 @@ import java.util.stream.IntStream;
 
 public class Sql {
 
-    public Connection connection;
+    private final Connection connection;
     public Sql(Connection connection) {
         this.connection = connection;
     }
@@ -41,10 +41,7 @@ public class Sql {
     }
 
     public long insert() {
-        long articleId = -1L;
-        try {
-            PreparedStatement statement = connection.prepareStatement(query.toString(),
-                PreparedStatement.RETURN_GENERATED_KEYS);
+        try (PreparedStatement statement = connection.prepareStatement(query.toString(), PreparedStatement.RETURN_GENERATED_KEYS)) {
 
             IntStream.range(0, params.size())
                 .forEach(i -> {
@@ -58,18 +55,16 @@ public class Sql {
             int result = statement.executeUpdate();
             if(result > 0) {
                 System.out.println("Create Article success");
-                ResultSet generatedKeys = statement.getGeneratedKeys();
-                if(generatedKeys.next()) {
-                    articleId = generatedKeys.getLong(1);
+                try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
+                    if (generatedKeys.next()) {
+                        return generatedKeys.getLong(1);
+                    }
                 }
             }
-
-            statement.close();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-
-        return articleId;
+        return -1;
     }
 
     public long update() {
