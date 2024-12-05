@@ -48,7 +48,7 @@ public class SimpleDb {
     }
 
     public Sql genSql() {
-        return new Sql(new SimpleDb(host, user, password, name));
+        return new Sql(this);
     }
 
     public void setDevMode(boolean isDevMode) {
@@ -205,11 +205,28 @@ public class SimpleDb {
     }
 
     public void startTransaction() {
-        isTransaction = true;
+        try {
+            conn.setAutoCommit(false);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     public void rollback() {
-        isTransaction = false;
+        try {
+            conn.rollback();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void commit() {
+        try {
+            conn.commit();
+            conn.setAutoCommit(true);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     private <T> T selectValue(String query, ResultSetExtractor<T> extractor, Object... params) {
