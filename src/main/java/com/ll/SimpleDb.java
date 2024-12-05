@@ -8,10 +8,10 @@ import java.sql.*;
 
 public class SimpleDb implements DataSource {
     private final String host;
-    private final String user;
-    private final String password;
+    private String user;
+    private String password;
     private final String db;
-    private final String jdbc_url;
+    private String jdbcUrl;
 
     private Connection conn;
     @Setter
@@ -22,13 +22,12 @@ public class SimpleDb implements DataSource {
         this.user = user;
         this.password = password;
         this.db = db;
-
-        this.jdbc_url = "jdbc:mysql://" + host + ":3306/" + db;
+        this.jdbcUrl = "jdbc:mysql://" + host + ":3306/" + db;
 
         try {
-            conn = DriverManager.getConnection(jdbc_url, user, password);
+            conn = DriverManager.getConnection(jdbcUrl, user, password);
         }catch(SQLException e){
-            e.printStackTrace();
+            throw new RuntimeException(e.getMessage());
         }
     }
 
@@ -41,7 +40,7 @@ public class SimpleDb implements DataSource {
             }
             stmt.execute(query);
         }catch(SQLException e){
-            e.printStackTrace();
+            throw new RuntimeException(e.getMessage());
         }
     }
 
@@ -62,31 +61,43 @@ public class SimpleDb implements DataSource {
             int id = ps.executeUpdate();
 
         }catch(SQLException e){
-            e.printStackTrace();
+            throw new RuntimeException(e.getMessage());
         }
     }
 
     public Sql genSql() {
-        return new Sql(conn, this.devMode, this);
+        return new Sql(getConnection(), this.devMode);
     }
 
-    public Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(jdbc_url, user, password);
+    private final ThreadLocal<Connection> threadLocalConnection = ThreadLocal.withInitial(() -> {
+        try {
+            return DriverManager.getConnection(jdbcUrl, user, password);
+        } catch (SQLException e) {
+            throw new RuntimeException("Connection 생성 실패 : " + e.getMessage(), e);
+        }
+    });
+
+    public Connection getConnection() {
+        return threadLocalConnection.get();
     }
 
     @Override
     public void closeConnection() {
-        if (conn != null){
-            try{
+        Connection conn = threadLocalConnection.get();
+        if (conn != null) {
+            try {
                 conn.close();
-            }catch(SQLException e){
-                throw new RuntimeException("연결 종료 실패 : " + e);
+            } catch (SQLException e) {
+                throw new RuntimeException("커넥션 종료 실패: " + e.getMessage(), e);
+            } finally {
+                threadLocalConnection.remove();
             }
         }
     }
 
     @Override
     public void startTransaction() {
+        Connection conn = threadLocalConnection.get();
         if (conn != null){
             try{
                 conn.setAutoCommit(false);
@@ -98,6 +109,7 @@ public class SimpleDb implements DataSource {
 
     @Override
     public void rollback() {
+        Connection conn = threadLocalConnection.get();
         if(conn != null){
             try{
                 conn.rollback();
@@ -109,6 +121,7 @@ public class SimpleDb implements DataSource {
 
     @Override
     public void commit(){
+        Connection conn = threadLocalConnection.get();
         try {
             conn.commit();
         } catch (SQLException e) {

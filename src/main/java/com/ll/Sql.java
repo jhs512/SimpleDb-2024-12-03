@@ -1,13 +1,11 @@
 package com.ll;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import java.sql.*;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -16,20 +14,17 @@ public class Sql {
     private final Connection conn;
     private final StringBuilder sqlBuilder;
     private final List<Object> params;
-    private boolean devMode;
-    private ObjectMapper objectMapper;
-    private final SimpleDb dataSource;
+    private final boolean devMode;
+    private final ObjectMapper objectMapper;
 
-
-    public Sql(Connection conn, boolean devMode, SimpleDb dataSource) {
+    public Sql(Connection conn, boolean devMode) {
         this.sqlBuilder = new StringBuilder();
         this.conn = conn;
         this.params = new ArrayList<>();
         this.devMode = devMode;
 
         // Java Date / Time 지원 모듈 등록
-        objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
-        this.dataSource = dataSource;
+        this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
     }
 
     /*
@@ -85,6 +80,7 @@ public class Sql {
      * */
     public long insert() {
         try {
+
             PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString(), Statement.RETURN_GENERATED_KEYS);
             addParams(ps);
             loggingSql(ps);
@@ -229,18 +225,18 @@ public class Sql {
 
     /*
      * 단 건의 ROW 조회 후, 클래스 타입으로 변환 후 반환
-     * 멀티스레딩 가능
+     * 멀티스레딩 오류 있음
      * @param  Class<T> 클래스 타입 정보
      * @return          클래스
      *
      * */
     public <T> T selectRow(Class<T> tClass) {
         String query = sqlBuilder.toString();
-        try {
-            PreparedStatement ps = conn.prepareStatement(query);
-            ResultSet rs = ps.executeQuery();
+        try (
+                PreparedStatement ps = conn.prepareStatement(query);
+                ResultSet rs = ps.executeQuery();
+        ){
             loggingSql(ps);
-
             if (rs.next()) {
                 ObjectNode node = objectMapper.createObjectNode();
                 ResultSetMetaData metaData = rs.getMetaData();
@@ -252,6 +248,7 @@ public class Sql {
                     Object value = rs.getObject(i);
                     node.putPOJO(columnName, value);
                 }
+
                 // ObjectNode를 지정된 타입으로 매핑
                 return objectMapper.convertValue(node, tClass);
             }

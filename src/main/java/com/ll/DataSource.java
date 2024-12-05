@@ -1,6 +1,5 @@
 package com.ll;
 
-import java.sql.SQLException;
 
 public interface DataSource {
     void closeConnection();
