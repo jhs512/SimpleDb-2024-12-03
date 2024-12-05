@@ -14,6 +14,7 @@ public class SimpleDb {
     private final int port = 3306;
     private boolean devMode;
     private Connection conn;
+    private boolean isTransaction = false;
 
     public SimpleDb(String host, String user, String password, String name) {
         this.host = host;
@@ -70,7 +71,7 @@ public class SimpleDb {
     public long runAndGetGeneratedKey(String query, Object... params) {
         try {
             PreparedStatement preparedStatement = genPreparedStatement(query, Statement.RETURN_GENERATED_KEYS, params);
-
+            conn.setAutoCommit(isTransaction);
             preparedStatement.executeUpdate();
 
             try (ResultSet generatedKeys = preparedStatement.getGeneratedKeys()) {
@@ -201,6 +202,14 @@ public class SimpleDb {
         return selectValues(query,
                 resultSet -> resultSet.getLong(1),
                 params);
+    }
+
+    public void startTransaction() {
+        isTransaction = true;
+    }
+
+    public void rollback() {
+        isTransaction = false;
     }
 
     private <T> T selectValue(String query, ResultSetExtractor<T> extractor, Object... params) {
