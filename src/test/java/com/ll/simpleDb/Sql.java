@@ -45,7 +45,6 @@ public class Sql {
                 query = query.replaceFirst("\\?",   content.toString() );
         }
         sql.append(query).append(" ");
-        System.out.println(sql);
         return this;
     }
 
@@ -84,11 +83,12 @@ public class Sql {
     long runQeury() {
         long id = -1;
         try {
+            Thread.sleep(50);
             PreparedStatement stmt = con.prepareStatement(sql.toString());
             id = stmt.executeUpdate();
             commit();
             stmt.close();
-        } catch (SQLException e) {
+        } catch (SQLException | InterruptedException e) {
             throw new RuntimeException(e);
         }
         return id;
@@ -142,7 +142,7 @@ public class Sql {
 
     }
 
-    Object select() {
+    Object select(boolean isSingle) {
         List<Map<String, Object>> result = new ArrayList<>();
         try {
             PreparedStatement stmt = con.prepareStatement(sql.toString());
@@ -159,22 +159,22 @@ public class Sql {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-        if (result.size() == 1) return result.getFirst();
+        if (isSingle) return result.getFirst();
         return result;
     }
 
     List<Map<String, Object>> selectRows() {
-        return (List<Map<String, Object>>) select();
+        return (List<Map<String, Object>>) select(false);
     }
     List<Article> selectRows(Class article) {
-        return ((List<Map<String, Object>>) select()).stream().map(Article::convert).toList();
+        return ((List<Map<String, Object>>) select(false)).stream().map(Article::convert).toList();
     }
 
     Article selectRow(Class article) {
-        return Article.convert((Map<String, Object>) select());
+        return Article.convert((Map<String, Object>) select(true));
     }
     Map<String, Object> selectRow() {
-        return (Map<String, Object>) select();
+        return (Map<String, Object>) select(true);
     }
 
 

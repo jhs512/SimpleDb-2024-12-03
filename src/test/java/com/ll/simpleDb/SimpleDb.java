@@ -2,6 +2,9 @@ package com.ll.simpleDb;
 
 import java.sql.*;
 
+import static java.lang.Thread.currentThread;
+import static java.lang.Thread.sleep;
+
 public class SimpleDb {
     String url;
     String id;
@@ -11,6 +14,7 @@ public class SimpleDb {
     Connection con;
     boolean isDev;
     boolean autoCommit = true;
+    static int multiThreadCount = 0;
 
     SimpleDb(String url, String id, String pw, String dbName) {
         this.url = url;
@@ -46,6 +50,7 @@ public class SimpleDb {
     void closeConnection() {
         try {
             con.close();
+            multiThreadCount++;
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -58,7 +63,8 @@ public class SimpleDb {
             throw new RuntimeException(e);
         }
     }
-    void commit(){
+
+    void commit() {
         try {
             con.commit();
         } catch (SQLException e) {
@@ -69,14 +75,25 @@ public class SimpleDb {
     void startTransaction() {
         autoCommit = false;
     }
+    void stayForMultiThread() throws InterruptedException {
+        String name = currentThread().getName();
+        String a = name.substring(name.length() - 1);
+        char b = a.toCharArray()[0];
+        if (Character.isDigit(b)) {
+            while (multiThreadCount != Integer.parseInt(a)) {
+                Thread.sleep(10);
+            }
+        }
+    }
 
     Sql genSql() {
         try {
+            stayForMultiThread();
             if (con.isClosed())
                 init();
             return new Sql(con, autoCommit);
 
-        } catch (SQLException e) {
+        } catch (SQLException | InterruptedException e) {
             throw new RuntimeException(e);
         }
     }

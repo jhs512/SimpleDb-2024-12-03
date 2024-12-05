@@ -27,7 +27,6 @@ public class SimpleDbTest {
     public static void beforeAll() {
         simpleDb = new SimpleDb("localhost", "root", "ghdrk123", "simpleDb_test");
         simpleDb.setDevMode(true);
-        System.out.println(13);
         createArticleTable();
     }
 
@@ -436,7 +435,6 @@ public class SimpleDbTest {
             try {
                 // SimpleDB에서 SQL 객체를 생성합니다.
                 Sql sql = simpleDb.genSql();
-
                 // SQL 쿼리를 작성합니다.
                 sql.append("SELECT * FROM article WHERE id = 1");
 
@@ -445,7 +443,6 @@ public class SimpleDbTest {
 
                 // 기대하는 Article 객체의 ID를 정의합니다.
                 Long id = 1L;
-
                 // Article 객체의 값이 기대하는 값과 일치하는지 확인하고,
                 // 일치하는 경우 성공 카운터를 증가시킵니다.
                 if (article.getId() == id &&
@@ -456,7 +453,9 @@ public class SimpleDbTest {
                         !article.isBlind()) {
                     successCounter.incrementAndGet();
                 }
-            } finally {
+            }
+            finally {
+
                 // 커넥션 종료
                 simpleDb.closeConnection();
                 // 작업이 완료되면 래치 카운터를 감소시킵니다.
