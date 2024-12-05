@@ -13,7 +13,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -366,39 +365,6 @@ public class SimpleDbTest {
 		assertThat(article.isBlind()).isEqualTo(false);
 	}
 
-	private static void createArticleTable() {
-		simpleDb.run("DROP TABLE IF EXISTS article");
-
-		simpleDb.run("""
-			CREATE TABLE article (
-			    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-			    PRIMARY KEY(id),
-			    createdDate DATETIME NOT NULL,
-			    modifiedDate DATETIME NOT NULL,
-			    title VARCHAR(100) NOT NULL,
-			    `body` TEXT NOT NULL,
-			    isBlind BIT(1) NOT NULL DEFAULT 0
-			)
-			""");
-	}
-
-	private void makeArticleTestData() {
-		IntStream.rangeClosed(1, 6).forEach(no -> {
-			boolean isBlind = no > 3;
-			String title = "제목%d".formatted(no);
-			String body = "내용%d".formatted(no);
-
-			simpleDb.run("""
-				INSERT INTO article
-				SET createdDate = NOW(),
-				modifiedDate = NOW(),
-				title = ?,
-				`body` = ?,
-				isBlind = ?
-				""", title, body, isBlind);
-		});
-	}
-
 	// 테스트 메서드를 정의하고, 테스트 이름을 지정합니다.
 	@Test
 	@DisplayName("use in multi threading")
@@ -518,6 +484,39 @@ public class SimpleDbTest {
 
         assertThat(newCount).isEqualTo(oldCount + 1);
     }
+
+	private static void createArticleTable() {
+		simpleDb.run("DROP TABLE IF EXISTS article");
+
+		simpleDb.run("""
+			CREATE TABLE article (
+			    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+			    PRIMARY KEY(id),
+			    createdDate DATETIME NOT NULL,
+			    modifiedDate DATETIME NOT NULL,
+			    title VARCHAR(100) NOT NULL,
+			    `body` TEXT NOT NULL,
+			    isBlind BIT(1) NOT NULL DEFAULT 0
+			)
+			""");
+	}
+
+	private void makeArticleTestData() {
+		IntStream.rangeClosed(1, 6).forEach(no -> {
+			boolean isBlind = no > 3;
+			String title = "제목%d".formatted(no);
+			String body = "내용%d".formatted(no);
+
+			simpleDb.run("""
+				INSERT INTO article
+				SET createdDate = NOW(),
+				modifiedDate = NOW(),
+				title = ?,
+				`body` = ?,
+				isBlind = ?
+				""", title, body, isBlind);
+		});
+	}
 
 	private void truncateArticleTable() {
 		simpleDb.run("TRUNCATE article");
