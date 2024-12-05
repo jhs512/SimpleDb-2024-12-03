@@ -12,11 +12,15 @@ public class Sql {
 
     boolean isDev;
 
-    Sql(Connection con,boolean autoCommit){
+    Sql(Connection con,boolean autoCommit,boolean isDev){
         this.con = con;
         this.autoCommit = autoCommit;
+        this.isDev = isDev;
     }
-
+    void viewQeury(PreparedStatement stmt){
+        if(isDev)
+            System.out.println(stmt.toString());
+    }
     void commit() throws SQLException {
         if(autoCommit)
             con.commit();
@@ -31,12 +35,6 @@ public class Sql {
         sql.append(query).append(" ");
         return this;
     }
-    /*Sql append(String query, int... contents) {
-        for (int content : contents)
-            query = query.replaceFirst("\\?",content+"");
-        sql.append(query).append(" ");
-        return this;
-    }*/
     Sql append(String query, Object... contents) {
         for (Object content : contents) {
             if(content instanceof String)
@@ -85,6 +83,7 @@ public class Sql {
         try {
             Thread.sleep(50);
             PreparedStatement stmt = con.prepareStatement(sql.toString());
+            viewQeury(stmt);
             id = stmt.executeUpdate();
             commit();
             stmt.close();
@@ -122,7 +121,7 @@ public class Sql {
     Object getColumnContent(ResultSet rs, String name, String type) throws SQLException {
         if(type.contains("BIGINT") && name.contains("COUNT"))
             return rs.getLong(name);
-        if(type.contains("BIGINT") || type.contains("BIT"))
+        if(type.contains("BIT") || type.contains("BIGINT"))
             return rs.getBoolean(name);
         if (type.contains("INT"))
             return rs.getLong(name);
@@ -141,6 +140,7 @@ public class Sql {
         try {
             PreparedStatement stmt = con.prepareStatement(sql.toString());
             ResultSet rs = stmt.executeQuery();
+            viewQeury(stmt);
             commit();
             Map<String, String> map = getColumnName(rs);
             while (rs.next()) {

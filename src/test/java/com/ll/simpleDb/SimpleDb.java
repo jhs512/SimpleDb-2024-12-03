@@ -92,7 +92,7 @@ public class SimpleDb {
             stayForMultiThread();
             if (con.isClosed())
                 init();
-            return new Sql(con, autoCommit);
+            return new Sql(con, autoCommit,isDev);
 
         } catch (SQLException | InterruptedException e) {
             throw new RuntimeException(e);
