@@ -92,7 +92,7 @@ public class SimpleDbTest {
                 .append(", title = ?", "제목 new")
                 .append(", body = ?", "내용 new");
 
-        long newId = sql.insert(); // AUTO_INCREMENT 에 의해서 생성된 주키 리턴
+        long newId = sql.insert(); // 생성된 주키 리턴
 
         assertThat(newId).isGreaterThan(0);
     }

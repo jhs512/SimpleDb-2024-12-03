@@ -31,18 +31,6 @@ public class Sql {
 
     /*
      * 쿼리 스트링을 스트링 빌더에 추가
-     * 체이닝 가능하게 sql 타입 리턴
-     *
-     * @param  query 쿼리스트링
-     * @return       sql 객체 자신
-     * */
-    public Sql append(String query) {
-        sqlBuilder.append(" ").append(query);
-        return this;
-    }
-
-    /*
-     * 쿼리 스트링을 스트링 빌더에 추가
      * 가변인자로 받은 파라미터를 배열에 추가
      * 체이닝 가능하게 sql 타입 리턴
      *
@@ -51,7 +39,7 @@ public class Sql {
      * @return       sql 객체 자신
      * */
     public Sql append(String query, Object... params) {
-        sqlBuilder.append(" ").append(query);
+        sqlBuilder.append("\n").append(query);
         this.params.addAll(Arrays.asList(params));
         return this;
     }
@@ -69,9 +57,7 @@ public class Sql {
     public Sql appendIn(String query, Object... params) {
         String placeHolders = String.join(", ", Collections.nCopies(params.length, "?"));
         query = query.replace("?", placeHolders);
-        sqlBuilder.append(" ").append(query);
-        this.params.addAll(Arrays.asList(params));
-        return this;
+        return append(query, params);
     }
 
     /*
@@ -80,17 +66,7 @@ public class Sql {
      * @return   db로 부터 생성 된 id 값
      * */
     public long insert() {
-        return simpleDb.run(sqlBuilder.toString(), params);
-        try (
-            PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString(), Statement.RETURN_GENERATED_KEYS);
-        ){
-
-            return ps.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        } finally {
-            params.clear();
-        }
+        return simpleDb.insert(sqlBuilder.toString(), params.toArray());
     }
 
     /*
@@ -99,15 +75,7 @@ public class Sql {
      * @return   1 : 성공, 0 : 실패
      * */
     public long update() {
-        try {
-            PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString());
-            int rs = ps.executeUpdate();
-            ps.close();
-
-            return rs;
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+        return simpleDb.update(sqlBuilder.toString(), params.toArray());
     }
 
     /*

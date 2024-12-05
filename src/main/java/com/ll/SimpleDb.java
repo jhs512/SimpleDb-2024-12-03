@@ -4,7 +4,10 @@ package com.ll;
 import lombok.Setter;
 
 import javax.sql.DataSource;
+import javax.xml.transform.Result;
 import java.sql.*;
+import java.util.Arrays;
+import java.util.List;
 
 
 public class SimpleDb {
@@ -13,7 +16,7 @@ public class SimpleDb {
     private String password;
     private final String db;
     private String jdbcUrl;
-    private Connection conn;
+
     @Setter
     private boolean devMode;
 
@@ -23,46 +26,47 @@ public class SimpleDb {
         this.password = password;
         this.db = db;
         this.jdbcUrl = "jdbc:mysql://" + host + ":3306/" + db;
+    }
 
-        try {
-            conn = DriverManager.getConnection(jdbcUrl, user, password);
-        }catch(SQLException e){
-            throw new RuntimeException(e.getMessage());
+    private <T> T executeUpdate(PreparedStatement ps, Class<T> cls) throws SQLException {
+        int afftedRows = ps.executeUpdate();
+        ResultSet generatedKeys = ps.getGeneratedKeys();
+
+
+        if (generatedKeys.next() && cls == Long.class) {
+            return (T) (Long) generatedKeys.getLong(1);
+        } else {
+            return (T) (Integer) ps.getUpdateCount();
         }
     }
 
-    public long run(String query, Object ... params){
-        try {
-            Statement stmt = conn.createStatement();
+    // 내부 SQL 실행 메서드
+    private <T> T _run(String sql, Class<T> cls, Object... params) {
+        Connection conn = getConnection();
+        sql = sql.trim();
 
-            if(devMode){
-                System.out.println(stmt);
+        try (PreparedStatement preparedStatement = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
+            bindParams(preparedStatement, params);
+            loggingSql(preparedStatement);
+            if (sql.startsWith("INSERT")) {
+                return executeUpdate(preparedStatement, cls);
             }
-            stmt.execute(query);
-        }catch(SQLException e){
-            throw new RuntimeException(e.getMessage());
+            else if (sql.startsWith("SELECT")) {
+                try (ResultSet rs = preparedStatement.executeQuery()) {
+                    return null;
+                }
+            }
+            return (T) (Integer) preparedStatement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("SQL 실행 실패 : " + e.getMessage(), e);
         }
     }
 
-    public void run(String query, String title, String body, boolean isBlind){
-        try {
-            PreparedStatement ps = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
-            // title
-            ps.setString(1, title);
-            // body
-            ps.setString(2, body);
-            // blind
-            ps.setBoolean(3, isBlind);
-
-            if(devMode){
-                System.out.println(ps);
-            }
-
-            int id = ps.executeUpdate();
-
-        }catch(SQLException e){
-            throw new RuntimeException(e.getMessage());
-        }
+    /*
+    * sql 문 실행 후 반환 값이 int 라 long 사용 X
+    * */
+    public int run(String sql, Object ... params) {
+        return _run(sql, Integer.class, params);
     }
 
     public Sql genSql() {
@@ -95,13 +99,14 @@ public class SimpleDb {
     /*
      * 전달받은 PreparedStatement에 인자를 채우고 리스트를 초기화
      *
-     * @param ps PreparedStatement
+     * @param ps        PreparedStatement
+     * @param params    Object[]
      * */
-    private void addParams(PreparedStatement ps) throws SQLException {
-        for (int i = 1; i <= params.size(); i++) {
-            ps.setObject(i, params.get(i - 1));
+    private void bindParams(PreparedStatement ps, Object[] params) throws SQLException {
+        // Column 은 1부터, 배열은 0부터 시작
+        for (int i = 1; i <= params.length; i++) {
+            ps.setObject(i, params[i-1]);
         }
-        params.clear();
     }
 
     public void closeConnection() {
@@ -150,5 +155,13 @@ public class SimpleDb {
                 throw new RuntimeException("커밋 실패 : " + e);
             }
         }
+    }
+
+    public long insert(String sql, Object[] params) {
+        return _run(sql, Long.class, params);
+    }
+
+    public int update(String sql, Object[] params) {
+        return _run(sql, Integer.class, params);
     }
 }
