@@ -19,7 +19,21 @@ public class Sql {
     //todo param 저장해서 나중에 바인딩
     public Sql append(String sqlBit, Object... param) {
         sb.append(sqlBit).append(" ");
-        params.addAll(Arrays.asList(param));
+        this.params.addAll(Arrays.asList(param));
+        return this;
+    }
+
+    public Sql appendIn(String sqlBit, Object... params) {
+
+
+        this.params.addAll(Arrays.asList(params));
+
+        int paramSize = params.length;
+
+        List<String> placeholder = Collections.nCopies(paramSize, "?");
+        String result = String.join(", ", placeholder);
+
+        sb.append(sqlBit.replace("IN (?)", "IN "+ "(" + result + ")"));
         return this;
     }
 
@@ -169,6 +183,7 @@ public class Sql {
 
         try (PreparedStatement pst = conn.prepareStatement(sql)) {
 
+
             if (!params.isEmpty()) {
                 bindParameters(pst, params);
             }
@@ -220,4 +235,6 @@ public class Sql {
             throw new RuntimeException("Failed to execute SQL : " + sql + " Error : " + e.getMessage(), e);
         }
     }
+
+
 }
