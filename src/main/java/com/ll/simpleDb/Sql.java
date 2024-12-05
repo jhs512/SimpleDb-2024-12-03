@@ -87,6 +87,8 @@ public class Sql {
                 try {
                     if (params.get(i) instanceof Integer) {
                         statement.setInt(i + 1, (Integer) params.get(i));
+                    } else if (params.get(i) instanceof Long) {
+                        statement.setLong(i + 1, (Long) params.get(i));
                     } else {
                         statement.setString(i + 1, (String) params.get(i));
                     }
@@ -98,9 +100,8 @@ public class Sql {
 
     public List<Map<String, Object>> selectRows() {
         List<Map<String, Object>> rows = new ArrayList<>();
-        try {
-            PreparedStatement statement = connection.prepareStatement(query.toString());
-            ResultSet resultSet = statement.executeQuery();
+        try (PreparedStatement statement = connection.prepareStatement(query.toString());
+            ResultSet resultSet = statement.executeQuery()){
 
             ResultSetMetaData metaData = resultSet.getMetaData();
             int columnCount = metaData.getColumnCount();
@@ -109,11 +110,9 @@ public class Sql {
 
                 for (int i = 1; i <= columnCount; i++) {
                     row.put(metaData.getColumnName(i), resultSet.getObject(i));
-                    System.out.println(resultSet.getObject(i));
                 }
                 rows.add(row);
             }
-            statement.close();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -122,9 +121,8 @@ public class Sql {
 
     public List<Article> selectRows(Class<Article> articleClass) {
         List<Article> articles = new ArrayList<>();
-        try {
-            PreparedStatement statement = connection.prepareStatement(query.toString());
-            ResultSet resultSet = statement.executeQuery();
+        try (PreparedStatement statement = connection.prepareStatement(query.toString());
+            ResultSet resultSet = statement.executeQuery()){
 
             while (resultSet.next()) {
                 Article article = new Article(
@@ -137,7 +135,6 @@ public class Sql {
                 );
                 articles.add(article);
             }
-            statement.close();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -146,9 +143,8 @@ public class Sql {
 
     public Map<String, Object> selectRow() {
         Map<String, Object> row = new HashMap<>();
-        try {
-            PreparedStatement statement = connection.prepareStatement(query.toString());
-            ResultSet resultSet = statement.executeQuery();
+        try (PreparedStatement statement = connection.prepareStatement(query.toString());
+            ResultSet resultSet = statement.executeQuery()){
 
             while (resultSet.next()) {
                 row.put("id", resultSet.getLong("id"));
@@ -158,7 +154,6 @@ public class Sql {
                 row.put("modifiedDate", resultSet.getTimestamp("modifiedDate").toLocalDateTime());
                 row.put("isBlind", resultSet.getBoolean("isBlind"));
             }
-            statement.close();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -167,9 +162,8 @@ public class Sql {
 
     public Article selectRow(Class<Article> articleClass) {
         Article article = null;
-        try {
-            PreparedStatement statement = connection.prepareStatement(query.toString());
-            ResultSet resultSet = statement.executeQuery();
+        try (PreparedStatement statement = connection.prepareStatement(query.toString());
+            ResultSet resultSet = statement.executeQuery()){
 
             while (resultSet.next()) {
                 article = new Article(
@@ -181,7 +175,6 @@ public class Sql {
                     resultSet.getTimestamp("modifiedDate").toLocalDateTime()
                 );
             }
-            statement.close();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -201,57 +194,35 @@ public class Sql {
     }
 
     private long executeQuery() {
-        long result = 0;
-        try {
-            PreparedStatement statement = connection.prepareStatement(query.toString());
-
+        try (PreparedStatement statement = connection.prepareStatement(query.toString())){
             queryBinding(statement);
-
             ResultSet resultSet = statement.executeQuery();
 
             String substring = query.substring(7);
             String[] split = substring.split(" ");
             if (resultSet.next()) {
-                result = resultSet.getLong(split[0]);
+                return resultSet.getLong(split[0]);
             }
-            statement.close();
+            resultSet.close();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-
-        return result;
+        return -1;
     }
 
     private List<Long> executeQueryForList() {
         List<Long> result = new ArrayList<>();
-        try {
-            PreparedStatement statement = connection.prepareStatement(query.toString());
-
-            IntStream.range(0, params.size())
-                .forEach(i -> {
-                    try {
-                        if (params.get(i) instanceof Integer) {
-                            statement.setInt(i + 1, (Integer) params.get(i));
-                        } else if (params.get(i) instanceof Long) {
-                            statement.setLong(i + 1, (Long) params.get(i));
-                        } else {
-                            statement.setString(i + 1, (String) params.get(i));
-                        }
-                    } catch (SQLException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
-
+        try (PreparedStatement statement = connection.prepareStatement(query.toString())){
+            queryBinding(statement);
             ResultSet resultSet = statement.executeQuery();
+
             while (resultSet.next()) {
                 result.add(resultSet.getLong(1));
             }
-
-            statement.close();
+            resultSet.close();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-
         return result;
     }
 
@@ -260,31 +231,29 @@ public class Sql {
     }
 
     private <T> T selectValue(String columnName, Class<T> type) {
-        T result = null;
-        try {
-            PreparedStatement statement = connection.prepareStatement(query.toString());
-            ResultSet resultSet = statement.executeQuery();
+        try (PreparedStatement statement = connection.prepareStatement(query.toString());
+            ResultSet resultSet = statement.executeQuery()){
+
             if (resultSet.next()) {
                 if (type == Long.class) {
-                    result = type.cast(resultSet.getLong(columnName));
+                    return type.cast(resultSet.getLong(columnName));
                 } else if (type == String.class) {
-                    result = type.cast(resultSet.getString(columnName));
+                    return type.cast(resultSet.getString(columnName));
                 } else if (type == LocalDateTime.class) {
-                    result = type.cast(resultSet.getTimestamp(columnName).toLocalDateTime());
+                    return type.cast(resultSet.getTimestamp(columnName).toLocalDateTime());
                 } else if (type == Boolean.class) {
                     try {
-                        result = type.cast(resultSet.getBoolean(columnName));
+                        return type.cast(resultSet.getBoolean(columnName));
                     } catch (SQLException e) {
                         String substring = query.substring(7).trim();
-                        result = type.cast(resultSet.getBoolean(substring));
+                        return type.cast(resultSet.getBoolean(substring));
                     }
                 }
             }
-            statement.close();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-        return result;
+        return null;
     }
 
     public Boolean selectBoolean() {
