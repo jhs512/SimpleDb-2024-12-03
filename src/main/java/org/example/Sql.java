@@ -5,15 +5,12 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 public class Sql {
-    private StringBuilder sql = new StringBuilder();
-    private final Connection connection;
-    private PreparedStatement preparedStatement;
+    private final StringBuilder sql = new StringBuilder();
+    private final SimpleDb simpleDb;
     private final List<Object> params = new ArrayList<>();
-    private final Boolean devMode;
 
-    public Sql(Boolean devMode, Connection connection) {
-        this.devMode = devMode;
-        this.connection = connection;
+    public Sql(SimpleDb simpleDb) {
+        this.simpleDb = simpleDb;
     }
 
     public Sql append(String sql, Object... params) {
@@ -36,192 +33,64 @@ public class Sql {
         return this;
     }
 
-
     public long insert() {
-        long id = -1;
-        try {
-            preparedStatement = connection.prepareStatement(sql.toString(), Statement.RETURN_GENERATED_KEYS);
-            for (int i = 0; i < params.size(); i++) {
-                preparedStatement.setObject(i + 1, params.get(i));
-            }
-            preparedStatement.executeUpdate();
-
-            ResultSet generatedKey = preparedStatement.getGeneratedKeys();
-            if (generatedKey.next()) {
-                id = generatedKey.getLong(1);
-            }
-
-            preparedStatement.close();
-            generatedKey.close();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-
-        showSql();
-        return id;
+        simpleDb.setSqlAndParams(sql.toString().trim(), params.toArray());
+        return simpleDb.insert();
     }
 
     public int update() {
-
-        return excuteUpdate();
+        simpleDb.setSqlAndParams(sql.toString(), params.toArray());
+        return simpleDb.update();
     }
 
     public int delete() {
-
-        return excuteUpdate();
+        simpleDb.setSqlAndParams(sql.toString(), params.toArray());
+        return simpleDb.delete();
     }
 
     public List<Map<String, Object>> selectRows() {
-        List<Map<String, Object>> articles = new ArrayList<>();
-
-        try {
-            ResultSet rs = excuteSelect();
-
-            while (rs.next()) {
-                Map<String, Object> articleMap = new HashMap<>();
-                articleMap.put("id", rs.getLong("id"));
-                articleMap.put("createdDate", rs.getTimestamp("createdDate").toLocalDateTime());
-                articleMap.put("modifiedDate", rs.getTimestamp("modifiedDate").toLocalDateTime());
-                articleMap.put("title", rs.getString("title"));
-                articleMap.put("body", rs.getString("body"));
-                articleMap.put("isBlind", rs.getBoolean("isBlind"));
-                articles.add(articleMap); // 맵을 리스트에 추가
-            }
-
-            preparedStatement.close();
-            rs.close();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-
-        return articles;
+        simpleDb.setSqlAndParams(sql.toString(), params.toArray());
+        return simpleDb.selectRows();
     }
 
     public List<Article> selectRows(Class<Article> articleClass) {
-        List<Article> articles = new ArrayList<>();
-        try {
-            ResultSet rs = excuteSelect();
-
-            while (rs.next()) {
-                articles.add(new Article(rs.getLong("id"),
-                        rs.getString("title"),
-                        rs.getString("body"),
-                        rs.getTimestamp("createdDate").toLocalDateTime(),
-                        rs.getTimestamp("modifiedDate").toLocalDateTime(),
-                        rs.getBoolean("isBlind")));
-            }
-
-            preparedStatement.close();
-            rs.close();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-        return articles;
+        simpleDb.setSqlAndParams(sql.toString(), params.toArray());
+        return simpleDb.selectRows(articleClass);
     }
 
     public Map<String, Object> selectRow() {
-
+        simpleDb.setSqlAndParams(sql.toString(), params.toArray());
         return selectRows().getFirst();
     }
 
     public Article selectRow(Class<Article> articleClass) {
-
+        simpleDb.setSqlAndParams(sql.toString(), params.toArray());
         return selectRows(Article.class).getFirst();
     }
 
     public LocalDateTime selectDatetime() {
-
-        return (LocalDateTime) selectOneRowOneColumn();
+        simpleDb.setSqlAndParams(sql.toString(), params.toArray());
+        return simpleDb.selectDatetime();
     }
 
     public Long selectLong() {
-
-        return (long) selectOneRowOneColumn();
+        simpleDb.setSqlAndParams(sql.toString(), params.toArray());
+        return simpleDb.selectLong();
     }
 
     public List<Long> selectLongs() {
-        List<Long> longs = new ArrayList<>();
-
-        try {
-            ResultSet rs = excuteSelect();
-            ResultSetMetaData rsmd = rs.getMetaData();
-
-            while (rs.next()) {
-                longs.add(rs.getLong(rsmd.getColumnName(1)));
-            }
-
-            preparedStatement.close();
-            rs.close();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-
-        return longs;
+        simpleDb.setSqlAndParams(sql.toString(), params.toArray());
+        return simpleDb.selectLongs();
     }
 
     public String selectString() {
-
-        return selectOneRowOneColumn().toString();
+        simpleDb.setSqlAndParams(sql.toString(), params.toArray());
+        return simpleDb.selectString();
     }
 
     public Boolean selectBoolean() {
-        // toString적용 시 "1" or "0"으로 반환됨
-        return selectOneRowOneColumn().toString().equals("1");
+        simpleDb.setSqlAndParams(sql.toString(), params.toArray());
+        return simpleDb.selectBoolean();
     }
-
-    private Object selectOneRowOneColumn() {
-        Object result = null;
-        try {
-            ResultSet rs = excuteSelect();
-            rs.next();
-
-            result = rs.getObject(1);
-
-            preparedStatement.close();
-            rs.close();
-            connection.close();
-        } catch (SQLException e) {
-            System.out.println("Sql단 오류 = " + e);
-        }
-
-        return result;
-    }
-
-    private ResultSet excuteSelect() throws SQLException {
-        preparedStatement = connection.prepareStatement(sql.toString());
-        for (int i = 0; i < params.size(); i++) {
-            preparedStatement.setObject(i + 1, params.get(i));
-        }
-        ResultSet rs = preparedStatement.executeQuery();
-
-        showSql();
-        return rs;
-    }
-
-    private int excuteUpdate() {
-        int affectedRows = 0;
-        try {
-            preparedStatement = connection.prepareStatement(sql.toString());
-            for (int i = 0; i < params.size(); i++) {
-                preparedStatement.setObject(i + 1, params.get(i));
-            }
-            affectedRows = preparedStatement.executeUpdate();
-            preparedStatement.close();
-        } catch (SQLException e) {
-            System.out.println("Sql단 오류 = " + e);
-        }
-
-        showSql();
-        return affectedRows;
-    }
-
-
-    private void showSql() {
-        if (devMode) {
-            System.out.println("== rawSql ==");
-            System.out.println(sql);
-        }
-    }
-
 
 }
