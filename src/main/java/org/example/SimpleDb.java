@@ -7,22 +7,47 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 public class SimpleDb {
+    String host;
+    String user;
+    String password;
+    String name;
     private final int port = 3306;
     private boolean devMode;
     private Connection conn;
 
     public SimpleDb(String host, String user, String password, String name) {
+        this.host = host;
+        this.user = user;
+        this.password = password;
+        this.name = name;
+
+        openConnection();
+    }
+
+    public void openConnection() {
         String url = "jdbc:mysql://" + host + ":" + port + "/" + name;
 
         try {
-            conn = DriverManager.getConnection(url, user, password);
+            if (conn == null) {
+                conn = DriverManager.getConnection(url, user, password);
+            }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException();
+        }
+    }
+
+    public void closeConnection() {
+        try {
+            if (conn != null) {
+                conn.close();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException();
         }
     }
 
     public Sql genSql() {
-        return new Sql(this);
+        return new Sql(new SimpleDb(host, user, password, name));
     }
 
     public void setDevMode(boolean isDevMode) {
