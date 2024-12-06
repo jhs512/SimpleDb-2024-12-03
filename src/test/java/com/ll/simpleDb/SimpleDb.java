@@ -1,6 +1,8 @@
 package com.ll.simpleDb;
 
 import java.sql.*;
+import java.util.HashMap;
+import java.util.Map;
 
 import static java.lang.Thread.currentThread;
 import static java.lang.Thread.sleep;
@@ -11,10 +13,11 @@ public class SimpleDb {
     String pw;
     String dbName;
     String port;
-    Connection con;
     boolean isDev;
     boolean autoCommit = true;
     static int multiThreadCount = 0;
+    Map<Thread, Connection> threadMap = new HashMap<>();
+    private static final ThreadLocal<Connection> localCon = new ThreadLocal<>();
 
     SimpleDb(String url, String id, String pw, String dbName) {
         this.url = url;
@@ -22,18 +25,30 @@ public class SimpleDb {
         this.pw = pw;
         this.dbName = dbName;
         this.port = "3306";
-        init();
     }
 
-    void init() {
+    Connection getConnection() {
         try {
-            con = DriverManager.getConnection("jdbc:mysql://" + url + ":" + port + "/" + dbName, id, pw);
-            con.setAutoCommit(false);
+            return DriverManager.getConnection("jdbc:mysql://" + url + ":" + port + "/" + dbName, id, pw);
 
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
+
+    void setLocalThread() {
+        if (localCon.get() == null) {
+            localCon.set(getConnection());
+        }
+        try {
+            if (localCon.get().isClosed()){
+                localCon.set(getConnection());
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 
     void run(String query) {
         this.genSql().append(query).create();
@@ -49,8 +64,10 @@ public class SimpleDb {
 
     void closeConnection() {
         try {
-            con.close();
+            setLocalThread();
+            localCon.get().close();
             multiThreadCount++;
+            localCon.remove();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -58,7 +75,8 @@ public class SimpleDb {
 
     void rollback() {
         try {
-            con.rollback();
+            setLocalThread();
+            localCon.get().rollback();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -66,17 +84,25 @@ public class SimpleDb {
 
     void commit() {
         try {
-            con.commit();
+            setLocalThread();
+            localCon.get().commit();
+            //localCon.get().setAutoCommit(true);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
 
     void startTransaction() {
-        autoCommit = false;
+        try {
+            localCon.get().setAutoCommit(false);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
+
     void stayForMultiThread() throws InterruptedException {
         String name = currentThread().getName();
+        System.out.println(name);
         String a = name.substring(name.length() - 1);
 
         char b = a.toCharArray()[0];
@@ -88,15 +114,10 @@ public class SimpleDb {
     }
 
     Sql genSql() {
-        try {
-            stayForMultiThread();
-            if (con.isClosed())
-                init();
-            return new Sql(con, autoCommit,isDev);
 
-        } catch (SQLException | InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+        setLocalThread();
+        return new Sql(localCon.get(), autoCommit, isDev);
+
     }
 
 

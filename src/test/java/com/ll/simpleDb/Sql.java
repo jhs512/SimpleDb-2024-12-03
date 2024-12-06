@@ -8,23 +8,18 @@ import java.util.stream.Collectors;
 public class Sql {
     StringBuilder sql = new StringBuilder();
     Connection con;
-    boolean autoCommit = true;
 
     boolean isDev;
 
     Sql(Connection con,boolean autoCommit,boolean isDev){
-        this.con = con;
-        this.autoCommit = autoCommit;
+        this.con =con;
         this.isDev = isDev;
     }
     void viewQeury(PreparedStatement stmt){
         if(isDev)
             System.out.println(stmt.toString());
     }
-    void commit() throws SQLException {
-        if(autoCommit)
-            con.commit();
-    }
+
     Sql append(String query) {
         sql.append(query).append(" ");
         return this;
@@ -85,7 +80,6 @@ public class Sql {
             PreparedStatement stmt = con.prepareStatement(sql.toString());
             viewQeury(stmt);
             id = stmt.executeUpdate();
-            commit();
             stmt.close();
         } catch (SQLException | InterruptedException e) {
             throw new RuntimeException(e);
@@ -97,12 +91,12 @@ public class Sql {
         return runQeury();
     }
 
-    long update() {
-        return runQeury();
+    int update() {
+        return (int)runQeury();
     }
 
-    long delete() {
-        return runQeury();
+    int delete() {
+        return (int)runQeury();
     }
     long create(){
         return  runQeury();
@@ -141,7 +135,6 @@ public class Sql {
             PreparedStatement stmt = con.prepareStatement(sql.toString());
             ResultSet rs = stmt.executeQuery();
             viewQeury(stmt);
-            commit();
             Map<String, String> map = getColumnName(rs);
             while (rs.next()) {
                 Map<String, Object> save = new HashMap<>();

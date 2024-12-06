@@ -77,17 +77,14 @@ public class SimpleDbTest {
     @DisplayName("insert")
     public void t001() {
         Sql sql = simpleDb.genSql();
-
-
-/*
+        /*
         == rawSql ==
         INSERT INTO article
         SET createdDate = NOW() ,
         modifiedDate = NOW() ,
-        title = '제목 ne
+        title = '제목 new' ,
         body = '내용 new'
-*/
-
+        */
         sql.append("INSERT INTO article")
                 .append("SET createdDate = NOW()")
                 .append(", modifiedDate = NOW()")
@@ -113,13 +110,12 @@ public class SimpleDbTest {
         SET title = '제목 new'
         WHERE id IN ('0', '1', '2', '3')
         */
-
         sql.append("UPDATE article")
                 .append("SET title = ?", "제목 new")
                 .append("WHERE id IN (?, ?, ?, ?)", 0, 1, 2, 3);
 
         // 수정된 row 개수
-        long affectedRowsCount = sql.update();
+        int affectedRowsCount = sql.update();
 
         assertThat(affectedRowsCount).isEqualTo(3);
     }
@@ -141,7 +137,7 @@ public class SimpleDbTest {
                 .append("WHERE id IN (?, ?, ?)", 0, 1, 3);
 
         // 삭제된 row 개수
-        long affectedRowsCount = sql.delete();
+        int affectedRowsCount = sql.delete();
 
         assertThat(affectedRowsCount).isEqualTo(2);
     }
@@ -164,6 +160,7 @@ public class SimpleDbTest {
             long id = i + 1;
 
             Map<String, Object> articleRow = articleRows.get(i);
+
             assertThat(articleRow.get("id")).isEqualTo(id);
             assertThat(articleRow.get("title")).isEqualTo("제목%d".formatted(id));
             assertThat(articleRow.get("body")).isEqualTo("내용%d".formatted(id));
@@ -209,6 +206,7 @@ public class SimpleDbTest {
         sql.append("SELECT NOW()");
 
         LocalDateTime datetime = sql.selectDatetime();
+
         long diff = ChronoUnit.SECONDS.between(datetime, LocalDateTime.now());
 
         assertThat(diff).isLessThanOrEqualTo(1L);
@@ -321,6 +319,7 @@ public class SimpleDbTest {
 
         assertThat(count).isEqualTo(3);
     }
+
     @Test
     @DisplayName("appendIn")
     public void t013() {
@@ -339,6 +338,7 @@ public class SimpleDbTest {
 
         assertThat(count).isEqualTo(3);
     }
+
     @Test
     @DisplayName("selectLongs, ORDER BY FIELD 사용법")
     public void t014() {
@@ -390,6 +390,7 @@ public class SimpleDbTest {
             assertThat(article.isBlind()).isEqualTo(false);
         });
     }
+
     @Test
     @DisplayName("selectRow, Article")
     public void t016() {
@@ -415,6 +416,7 @@ public class SimpleDbTest {
         assertThat(article.isBlind()).isEqualTo(false);
     }
 
+    // 테스트 메서드를 정의하고, 테스트 이름을 지정합니다.
     @Test
     @DisplayName("use in multi threading")
     public void t017() throws InterruptedException {
@@ -435,6 +437,7 @@ public class SimpleDbTest {
             try {
                 // SimpleDB에서 SQL 객체를 생성합니다.
                 Sql sql = simpleDb.genSql();
+
                 // SQL 쿼리를 작성합니다.
                 sql.append("SELECT * FROM article WHERE id = 1");
 
@@ -443,6 +446,7 @@ public class SimpleDbTest {
 
                 // 기대하는 Article 객체의 ID를 정의합니다.
                 Long id = 1L;
+
                 // Article 객체의 값이 기대하는 값과 일치하는지 확인하고,
                 // 일치하는 경우 성공 카운터를 증가시킵니다.
                 if (article.getId() == id &&
@@ -453,9 +457,7 @@ public class SimpleDbTest {
                         !article.isBlind()) {
                     successCounter.incrementAndGet();
                 }
-            }
-            finally {
-
+            } finally {
                 // 커넥션 종료
                 simpleDb.closeConnection();
                 // 작업이 완료되면 래치 카운터를 감소시킵니다.
@@ -477,6 +479,7 @@ public class SimpleDbTest {
         // 성공 카운터가 쓰레드 수와 동일한지 확인합니다.
         assertThat(successCounter.get()).isEqualTo(numberOfThreads);
     }
+
     @Test
     @DisplayName("rollback")
     public void t018() {
@@ -504,6 +507,7 @@ public class SimpleDbTest {
 
         assertThat(newCount).isEqualTo(oldCount);
     }
+
     @Test
     @DisplayName("commit")
     public void t019() {
