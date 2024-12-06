@@ -10,9 +10,9 @@ import java.util.List;
 import java.util.Map;
 
 public class SimpleDb {
-    private String username = "";
-    private String password = "";
-    private String url = "";
+    private String username;
+    private String password;
+    private String url;
     @Setter
     private Boolean devMode = false;
     @Setter
@@ -26,7 +26,6 @@ public class SimpleDb {
             throw new RuntimeException(e);
         }
     });
-
 
     public SimpleDb(String host, String username, String password, String dbName) {
         int port = 3306;
@@ -144,7 +143,7 @@ public class SimpleDb {
     public List<Map<String, Object>> selectRows() {
         List<Map<String, Object>> articles = new ArrayList<>();
 
-        try(ResultSet rs = executeSelect();) {
+        try(ResultSet rs = executeSelect()) {
 
             while (rs.next()) {
                 Map<String, Object> articleMap = new HashMap<>();
@@ -165,7 +164,7 @@ public class SimpleDb {
 
     public List<Article> selectRows(Class<Article> articleClass) {
         List<Article> articles = new ArrayList<>();
-        try(ResultSet rs = executeSelect();) {
+        try(ResultSet rs = executeSelect()) {
 
             while (rs.next()) {
                 articles.add(new Article(rs.getLong("id"),
@@ -194,7 +193,7 @@ public class SimpleDb {
     public List<Long> selectLongs() {
         List<Long> longs = new ArrayList<>();
 
-        try(ResultSet rs = executeSelect();) {
+        try(ResultSet rs = executeSelect()) {
 
             ResultSetMetaData rsmd = rs.getMetaData();
 
@@ -221,7 +220,7 @@ public class SimpleDb {
 
     private Object selectOneRowOneColumn() {
         Object result = null;
-        try(ResultSet rs = executeSelect();) {
+        try(ResultSet rs = executeSelect()) {
             rs.next();
 
             result = rs.getObject(1);
