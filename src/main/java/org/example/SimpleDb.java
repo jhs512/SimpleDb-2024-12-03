@@ -1,7 +1,6 @@
 package org.example;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -13,38 +12,54 @@ public class SimpleDb {
     String name;
     private final int port = 3306;
     private boolean devMode;
-    private Connection conn;
-    private boolean isTransaction = false;
+    private Map<String, Connection> connections = new HashMap<>();
+    private Map<String, Boolean> isTransaction = new HashMap<>();
 
     public SimpleDb(String host, String user, String password, String name) {
         this.host = host;
         this.user = user;
         this.password = password;
         this.name = name;
-
-        openConnection();
     }
 
-    public void openConnection() {
-        String url = "jdbc:mysql://" + host + ":" + port + "/" + name;
+    private Connection getCurrentThreadConnection() {
+        String currentThread = Thread.currentThread().getName();
+        Connection connection = connections.get(currentThread);
 
+        if (connection != null) {
+            return connection;
+        }
+
+        String url = "jdbc:mysql://" + host + ":" + port + "/" + name;
         try {
-            if (conn == null) {
-                conn = DriverManager.getConnection(url, user, password);
-            }
+            connection = DriverManager.getConnection(url, user, password);
         } catch (SQLException e) {
             throw new RuntimeException();
+        }
+
+        connections.put(currentThread, connection);
+        return connection;
+    }
+
+    private void clearCurrentThreadConnection() {
+        String currentThread = Thread.currentThread().getName();
+        Connection connection = connections.get(currentThread);
+
+        if (connection == null) {
+            return;
+        }
+
+        try {
+            connection.close();
+        } catch (SQLException e) {
+            throw new RuntimeException();
+        } finally {
+            connections.remove(currentThread);
         }
     }
 
     public void closeConnection() {
-        try {
-            if (conn != null) {
-                conn.close();
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException();
-        }
+        clearCurrentThreadConnection();
     }
 
     public Sql genSql() {
@@ -57,7 +72,7 @@ public class SimpleDb {
 
     public void run(String query, Object... params) {
         try {
-            PreparedStatement pstmt = conn.prepareStatement(query);
+            PreparedStatement pstmt = getCurrentThreadConnection().prepareStatement(query);
             for (int i = 0; i < params.length; i++) {
                 pstmt.setObject(i + 1, params[i]);
             }
@@ -65,13 +80,20 @@ public class SimpleDb {
             pstmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
+        } finally {
+            try {
+                if (getCurrentThreadConnection().getAutoCommit()) {
+                    clearCurrentThreadConnection();
+                }
+            } catch (SQLException e) {
+                new RuntimeException();
+            }
         }
     }
 
     public long runAndGetGeneratedKey(String query, Object... params) {
         try {
             PreparedStatement preparedStatement = genPreparedStatement(query, Statement.RETURN_GENERATED_KEYS, params);
-            conn.setAutoCommit(isTransaction);
             preparedStatement.executeUpdate();
 
             try (ResultSet generatedKeys = preparedStatement.getGeneratedKeys()) {
@@ -81,6 +103,14 @@ public class SimpleDb {
             }
         } catch (SQLException e) {
             e.printStackTrace();
+        } finally {
+            try {
+                if (getCurrentThreadConnection().getAutoCommit()) {
+                    clearCurrentThreadConnection();
+                }
+            } catch (SQLException e) {
+                new RuntimeException();
+            }
         }
         return -1;
     }
@@ -90,6 +120,14 @@ public class SimpleDb {
             return genPreparedStatement(query, params).executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
+        } finally {
+            try {
+                if (getCurrentThreadConnection().getAutoCommit()) {
+                    clearCurrentThreadConnection();
+                }
+            } catch (SQLException e) {
+                new RuntimeException();
+            }
         }
         return -1;
     }
@@ -115,6 +153,14 @@ public class SimpleDb {
             return results;
         } catch (SQLException e) {
             e.printStackTrace();
+        } finally {
+            try {
+                if (getCurrentThreadConnection().getAutoCommit()) {
+                    clearCurrentThreadConnection();
+                }
+            } catch (SQLException e) {
+                new RuntimeException();
+            }
         }
         return null;
     }
@@ -128,6 +174,14 @@ public class SimpleDb {
             }
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            try {
+                if (getCurrentThreadConnection().getAutoCommit()) {
+                    clearCurrentThreadConnection();
+                }
+            } catch (SQLException e) {
+                new RuntimeException();
+            }
         }
         return null;
     }
@@ -144,6 +198,14 @@ public class SimpleDb {
             return result;
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            try {
+                if (getCurrentThreadConnection().getAutoCommit()) {
+                    clearCurrentThreadConnection();
+                }
+            } catch (SQLException e) {
+                new RuntimeException();
+            }
         }
         return null;
     }
@@ -166,6 +228,14 @@ public class SimpleDb {
             return result;
         } catch (SQLException e) {
             e.printStackTrace();
+        } finally {
+            try {
+                if (getCurrentThreadConnection().getAutoCommit()) {
+                    clearCurrentThreadConnection();
+                }
+            } catch (SQLException e) {
+                new RuntimeException();
+            }
         }
         return null;
     }
@@ -206,7 +276,7 @@ public class SimpleDb {
 
     public void startTransaction() {
         try {
-            conn.setAutoCommit(false);
+            getCurrentThreadConnection().setAutoCommit(false);
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -214,7 +284,7 @@ public class SimpleDb {
 
     public void rollback() {
         try {
-            conn.rollback();
+            getCurrentThreadConnection().rollback();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -222,8 +292,8 @@ public class SimpleDb {
 
     public void commit() {
         try {
-            conn.commit();
-            conn.setAutoCommit(true);
+            getCurrentThreadConnection().commit();
+            getCurrentThreadConnection().setAutoCommit(true);
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -239,6 +309,14 @@ public class SimpleDb {
             }
         } catch (SQLException e) {
             e.printStackTrace();
+        } finally {
+            try {
+                if (getCurrentThreadConnection().getAutoCommit()) {
+                    clearCurrentThreadConnection();
+                }
+            } catch (SQLException e) {
+                new RuntimeException();
+            }
         }
         return null;
     }
@@ -256,12 +334,20 @@ public class SimpleDb {
             return values;
         } catch (SQLException e) {
             e.printStackTrace();
+        } finally {
+            try {
+                if (getCurrentThreadConnection().getAutoCommit()) {
+                    clearCurrentThreadConnection();
+                }
+            } catch (SQLException e) {
+                new RuntimeException();
+            }
         }
         return null;
     }
 
     private PreparedStatement genPreparedStatement(String query, Object... params) throws SQLException {
-        PreparedStatement preparedStatement = conn.prepareStatement(query);
+        PreparedStatement preparedStatement = getCurrentThreadConnection().prepareStatement(query);
 
         for (int i = 0; i < params.length; i++) {
             preparedStatement.setObject(i + 1, params[i]);
@@ -271,7 +357,7 @@ public class SimpleDb {
     }
 
     private PreparedStatement genPreparedStatement(String query, int statement, Object... params) throws SQLException {
-        PreparedStatement preparedStatement = conn.prepareStatement(query, statement);
+        PreparedStatement preparedStatement = getCurrentThreadConnection().prepareStatement(query, statement);
 
         for (int i = 0; i < params.length; i++) {
             preparedStatement.setObject(i + 1, params[i]);
