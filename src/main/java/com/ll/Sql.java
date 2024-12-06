@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
-public interface Sql {
+public interface Sql extends AutoCloseable {
 
     SqlImpl append(String queryPiece, Object... values) ;
     SqlImpl appendIn(String s, Object... values);
@@ -27,7 +27,7 @@ public interface Sql {
 
     List<Long> selectLongs();
 
-    void close() throws SQLException;
+    void close();
 
     public Connection getConnection();
 }

@@ -22,6 +22,8 @@ dependencies {
 
     implementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.18.2")
+    implementation("com.zaxxer:HikariCP:5.0.1")
+    implementation ("ch.qos.logback:logback-classic:1.2.6")
 }
 
 tasks.test {

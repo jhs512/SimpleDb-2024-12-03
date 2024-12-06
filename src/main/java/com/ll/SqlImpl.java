@@ -1,5 +1,7 @@
 package com.ll;
 
+import com.zaxxer.hikari.HikariDataSource;
+
 import java.lang.reflect.Field;
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -8,8 +10,12 @@ import java.util.stream.Collectors;
 
 public class SqlImpl implements Sql {
 
-    public SqlImpl(Connection conn) {
-        this.conn = conn;
+    public SqlImpl(HikariDataSource dataSource) {
+        try{
+            this.conn = dataSource.getConnection();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private Connection conn;
@@ -210,8 +216,15 @@ public class SqlImpl implements Sql {
     }
 
     @Override
-    public void close() throws SQLException {
-        conn.close();
-        conn = null;
+    public void close()  {
+        try{
+            if(conn != null && !conn.isClosed()) {
+                conn.close();
+            }
+        }catch (SQLException e) {
+            e.printStackTrace();
+        }finally {
+            conn = null;
+        }
     }
 }

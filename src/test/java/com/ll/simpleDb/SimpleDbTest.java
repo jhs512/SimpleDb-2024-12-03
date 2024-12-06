@@ -21,18 +21,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class SimpleDbTest {
     private static SimpleDb simpleDb;
 
-    @BeforeAll
-    public static void beforeAll() {
+    @BeforeEach
+    public void beforeEach() {
         simpleDb = new SimpleDb("localhost", "root", "lldj123414", "simpleDb__test");
         simpleDb.setDevMode(true);
 
         createArticleTable();
-    }
-
-    @BeforeEach
-    public void beforeEach() {
         truncateArticleTable();
         makeArticleTestData();
+    }
+
+    @AfterEach
+    public void afterEach() {
+        simpleDb.close();
     }
 
     private static void createArticleTable() {
@@ -51,7 +52,7 @@ public class SimpleDbTest {
                 """);
     }
 
-    private void makeArticleTestData() {
+    private static void makeArticleTestData() {
         IntStream.rangeClosed(1, 6).forEach(no -> {
             boolean isBlind = no > 3;
             String title = "제목%d".formatted(no);
@@ -68,7 +69,7 @@ public class SimpleDbTest {
         });
     }
 
-    private void truncateArticleTable() {
+    private static void truncateArticleTable() {
         simpleDb.run("TRUNCATE article");
     }
 
@@ -338,6 +339,7 @@ public class SimpleDbTest {
         assertThat(count).isEqualTo(3);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     @DisplayName("selectLongs, ORDER BY FIELD 사용법")
     public void t014() {
@@ -352,7 +354,7 @@ public class SimpleDbTest {
         */
         sql.append("SELECT id", "제목 new")
                 .append("FROM article", "제목 new")
-                .appendIn("WHERE id IN (?)", ids)
+                .appendIn("WHERE id IN (?)",  ids)
                 .appendIn("ORDER BY FIELD (id, ?)", ids);
 
         List<Long> foundIds = sql.selectLongs();
@@ -433,10 +435,7 @@ public class SimpleDbTest {
 
         // 각 쓰레드에서 실행될 작업을 정의합니다.
         Runnable task = () -> {
-            try {
-                // SimpleDB에서 SQL 객체를 생성합니다.
-                Sql sql = simpleDb.genSql();
-
+            try(Sql sql = simpleDb.genSql()) {
                 // SQL 쿼리를 작성합니다.
                 sql.append("SELECT * FROM article WHERE id = 1", "제목 new");
 
@@ -457,8 +456,6 @@ public class SimpleDbTest {
                     successCounter.incrementAndGet();
                 }
             } finally {
-                // 커넥션 종료
-                simpleDb.closeConnection();
                 // 작업이 완료되면 래치 카운터를 감소시킵니다.
                 latch.countDown();
             }
