@@ -3,6 +3,7 @@ package com.ll;
 
 import com.ll.util.Util;
 import lombok.Setter;
+
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -30,9 +31,9 @@ public class SimpleDb {
         ps.executeUpdate();
         ResultSet generatedKeys = ps.getGeneratedKeys();
         if (generatedKeys.next() && cls == Long.class) {
-            return (T) (Long) generatedKeys.getLong(1);
+            return cls.cast(generatedKeys.getLong(1));
         } else {
-            return (T) (Integer) ps.getUpdateCount();
+            return cls.cast(ps.getUpdateCount());
         }
     }
 
@@ -46,14 +47,12 @@ public class SimpleDb {
 
             if (sql.startsWith("INSERT") || sql.startsWith("UPDATE") || sql.startsWith("DELETE")) {
                 return executeUpdate(preparedStatement, cls);
-            }
-            else if (sql.startsWith("SELECT")) {
+            } else if (sql.startsWith("SELECT")) {
                 try (ResultSet rs = preparedStatement.executeQuery()) {
                     return parseResultSet(rs, cls);
                 }
             }
-
-            return (T) (Integer) preparedStatement.executeUpdate();
+            return cls.cast(preparedStatement.executeUpdate());
         } catch (SQLException e) {
             throw new RuntimeException("SQL 실행 실패 : " + e.getMessage(), e);
         }
@@ -64,9 +63,9 @@ public class SimpleDb {
         int columnCount = metaData.getColumnCount();
 
         Map<String, Object> rows = new LinkedHashMap<>();
-        for(int i=1;i<=columnCount;i++){
+        for (int i = 1; i <= columnCount; i++) {
             String columnName = metaData.getColumnName(i);
-            Object value = switch(metaData.getColumnType(i)){
+            Object value = switch (metaData.getColumnType(i)) {
                 case Types.BIGINT -> rs.getLong(columnName);
                 case Types.BOOLEAN -> rs.getBoolean(columnName);
                 case Types.TIMESTAMP -> {
@@ -81,30 +80,30 @@ public class SimpleDb {
     }
 
     private <T> T parseResultSet(ResultSet rs, Class<T> cls) throws SQLException {
-        if(!rs.next()) throw new NoSuchElementException("데이터 없음");
-
-        return switch(cls.getSimpleName()){
-            case "Long" -> (T) (Long) rs.getLong(1);
-            case "Boolean" -> (T) (Boolean) rs.getBoolean(1);
-            case "String" -> (T) (String) rs.getString(1);
-            case "LocalDateTime" -> (T) (LocalDateTime) rs.getTimestamp(1).toLocalDateTime();
-            case "Map" -> (T) parseResulSetToMap(rs);
+        if (!rs.next()) throw new NoSuchElementException("데이터 없음");
+        Object value = switch (cls.getSimpleName()) {
+            case "Long" -> rs.getLong(1);
+            case "Boolean" -> rs.getBoolean(1);
+            case "String" -> rs.getString(1);
+            case "LocalDateTime" -> rs.getTimestamp(1).toLocalDateTime();
+            case "Map" -> parseResulSetToMap(rs);
             case "List" -> {
                 List<Map<String, Object>> rows = new ArrayList<>();
                 do {
                     rows.add(parseResulSetToMap(rs));
-                }while(rs.next());
-                yield (T) rows;
+                } while (rs.next());
+                yield rows;
             }
             default -> throw new IllegalStateException("Unexpected value: " + cls.getSimpleName());
         };
+        return cls.cast(value);
     }
 
     /*
-    * sql 문 실행 후 반환 값이 int 라 long 사용 X
-    * */
-    public int run(String sql, Object ... params) {
-        return _run(sql, Integer.class, params);
+     * sql 문 실행 후 반환 값이 int 라 long 사용 X
+     * */
+    public void run(String sql, Object... params) {
+        _run(sql, Integer.class, params);
     }
 
     public Sql genSql() {
@@ -143,7 +142,7 @@ public class SimpleDb {
     private void bindParams(PreparedStatement ps, Object[] params) throws SQLException {
         // Column 은 1부터, 배열은 0부터 시작
         for (int i = 1; i <= params.length; i++) {
-            ps.setObject(i, params[i-1]);
+            ps.setObject(i, params[i - 1]);
         }
     }
 
@@ -173,11 +172,11 @@ public class SimpleDb {
 
     public void rollback() {
         Connection conn = threadLocalConnection.get();
-        if(conn != null){
-            try{
+        if (conn != null) {
+            try {
                 conn.rollback();
                 conn.setAutoCommit(true);
-            }catch(SQLException e){
+            } catch (SQLException e) {
                 throw new RuntimeException("롤백 실패 : " + e);
             }
         }
@@ -215,7 +214,7 @@ public class SimpleDb {
         return _run(sql, Map.class, params);
     }
 
-    public  <T> T selectRow(String sql, Class<T> tClass, Object[] params) {
+    public <T> T selectRow(String sql, Class<T> tClass, Object[] params) {
         Map<String, Object> result = selectRow(sql, params);
         return Util.mapper.mapToObj(result, tClass);
     }
@@ -227,7 +226,7 @@ public class SimpleDb {
                 .toList();
     }
 
-    public List<Map<String, Object>> selectRows(String sql, Object[] params){
+    public List<Map<String, Object>> selectRows(String sql, Object[] params) {
         return _run(sql, List.class, params);
     }
 
