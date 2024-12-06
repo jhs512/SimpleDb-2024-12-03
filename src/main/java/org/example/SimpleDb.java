@@ -12,8 +12,7 @@ public class SimpleDb {
     String name;
     private final int port = 3306;
     private boolean devMode;
-    private Map<String, Connection> connections = new HashMap<>();
-    private Map<String, Boolean> isTransaction = new HashMap<>();
+    private final Map<String, Connection> connections = new HashMap<>();
 
     public SimpleDb(String host, String user, String password, String name) {
         this.host = host;
@@ -72,12 +71,12 @@ public class SimpleDb {
 
     public void run(String query, Object... params) {
         try {
-            PreparedStatement pstmt = getCurrentThreadConnection().prepareStatement(query);
+            PreparedStatement preparedStatement = getCurrentThreadConnection().prepareStatement(query);
             for (int i = 0; i < params.length; i++) {
-                pstmt.setObject(i + 1, params[i]);
+                preparedStatement.setObject(i + 1, params[i]);
             }
 
-            pstmt.executeUpdate();
+            preparedStatement.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException();
         } finally {
@@ -134,17 +133,17 @@ public class SimpleDb {
     public List<Map<String, Object>> selectRows(String query, Object... params) {
         try {
             PreparedStatement preparedStatement = genPreparedStatement(query, params);
-
-            ResultSet rs = preparedStatement.executeQuery();
+            ResultSet resultSet = preparedStatement.executeQuery();
             List<Map<String, Object>> results = new ArrayList<>();
-            while (rs.next()) {
+
+            while (resultSet.next()) {
                 Map<String, Object> result = new HashMap<>();
-                result.put("id", rs.getLong("id"));
-                result.put("title", rs.getString("title"));
-                result.put("body", rs.getString("body"));
-                result.put("createdDate", rs.getTimestamp("createdDate").toLocalDateTime());
-                result.put("modifiedDate", rs.getTimestamp("modifiedDate").toLocalDateTime());
-                result.put("isBlind", rs.getBoolean("isBlind"));
+                result.put("id", resultSet.getLong("id"));
+                result.put("title", resultSet.getString("title"));
+                result.put("body", resultSet.getString("body"));
+                result.put("createdDate", resultSet.getTimestamp("createdDate").toLocalDateTime());
+                result.put("modifiedDate", resultSet.getTimestamp("modifiedDate").toLocalDateTime());
+                result.put("isBlind", resultSet.getBoolean("isBlind"));
 
                 results.add(result);
             }
@@ -163,63 +162,19 @@ public class SimpleDb {
         }
     }
 
-    public Object selectRow(String query, Class c, Object... params) {
-        try {
-            PreparedStatement preparedStatement = genPreparedStatement(query, params);
-            ResultSet rs = preparedStatement.executeQuery();
-            if (rs.next()) {
-                return genObject(c, rs);
-            }
-        } catch (Exception e) {
-            throw new RuntimeException();
-        } finally {
-            try {
-                if (getCurrentThreadConnection().getAutoCommit()) {
-                    clearCurrentThreadConnection();
-                }
-            } catch (SQLException e) {
-                throw new RuntimeException();
-            }
-        }
-        return null;
-    }
-
-    public List<Object> selectRows(String query, Class c, Object... params) {
-        try {
-            PreparedStatement preparedStatement = genPreparedStatement(query, params);
-            ResultSet rs = preparedStatement.executeQuery();
-            List<Object> result = new ArrayList<>();
-            while (rs.next()) {
-                result.add(genObject(c, rs));
-            }
-
-            return result;
-        } catch (Exception e) {
-            throw new RuntimeException();
-        } finally {
-            try {
-                if (getCurrentThreadConnection().getAutoCommit()) {
-                    clearCurrentThreadConnection();
-                }
-            } catch (SQLException e) {
-                throw new RuntimeException();
-            }
-        }
-    }
-
     public Map<String, Object> selectRow(String query, Object... params) {
         try {
             PreparedStatement preparedStatement = genPreparedStatement(query, params);
 
-            ResultSet rs = preparedStatement.executeQuery();
+            ResultSet resultSet = preparedStatement.executeQuery();
             Map<String, Object> result = new HashMap<>();
-            if (rs.next()) {
-                result.put("id", rs.getLong("id"));
-                result.put("title", rs.getString("title"));
-                result.put("body", rs.getString("body"));
-                result.put("createdDate", rs.getTimestamp("createdDate").toLocalDateTime());
-                result.put("modifiedDate", rs.getTimestamp("modifiedDate").toLocalDateTime());
-                result.put("isBlind", rs.getBoolean("isBlind"));
+            if (resultSet.next()) {
+                result.put("id", resultSet.getLong("id"));
+                result.put("title", resultSet.getString("title"));
+                result.put("body", resultSet.getString("body"));
+                result.put("createdDate", resultSet.getTimestamp("createdDate").toLocalDateTime());
+                result.put("modifiedDate", resultSet.getTimestamp("modifiedDate").toLocalDateTime());
+                result.put("isBlind", resultSet.getBoolean("isBlind"));
             }
 
             return result;
@@ -234,6 +189,51 @@ public class SimpleDb {
                 throw new RuntimeException();
             }
         }
+    }
+
+    public List<Object> selectRows(String query, Class<?> c, Object... params) {
+        try {
+            PreparedStatement preparedStatement = genPreparedStatement(query, params);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            List<Object> result = new ArrayList<>();
+            while (resultSet.next()) {
+                result.add(genObject(c, resultSet));
+            }
+
+            return result;
+        } catch (Exception e) {
+            throw new RuntimeException();
+        } finally {
+            try {
+                if (getCurrentThreadConnection().getAutoCommit()) {
+                    clearCurrentThreadConnection();
+                }
+            } catch (SQLException e) {
+                throw new RuntimeException();
+            }
+        }
+    }
+
+    public Object selectRow(String query, Class<?> c, Object... params) {
+        try {
+            PreparedStatement preparedStatement = genPreparedStatement(query, params);
+            ResultSet resultSet = preparedStatement.executeQuery();
+
+            if (resultSet.next()) {
+                return genObject(c, resultSet);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException();
+        } finally {
+            try {
+                if (getCurrentThreadConnection().getAutoCommit()) {
+                    clearCurrentThreadConnection();
+                }
+            } catch (SQLException e) {
+                throw new RuntimeException();
+            }
+        }
+        return null;
     }
 
     public LocalDateTime selectDatetime(String query, Object... params) {
@@ -298,10 +298,10 @@ public class SimpleDb {
     private <T> T selectValue(String query, ResultSetExtractor<T> extractor, Object... params) {
         try {
             PreparedStatement preparedStatement = genPreparedStatement(query, params);
+            ResultSet resultSet = preparedStatement.executeQuery();
 
-            ResultSet rs = preparedStatement.executeQuery();
-            if (rs.next()) {
-                return extractor.extract(rs);
+            if (resultSet.next()) {
+                return extractor.extract(resultSet);
             }
         } catch (SQLException e) {
             throw new RuntimeException();
@@ -321,10 +321,10 @@ public class SimpleDb {
         try {
             PreparedStatement preparedStatement = genPreparedStatement(query, params);
             List<T> values = new ArrayList<>();
+            ResultSet resultSet = preparedStatement.executeQuery();
 
-            ResultSet rs = preparedStatement.executeQuery();
-            while (rs.next()) {
-                values.add(extractor.extract(rs));
+            while (resultSet.next()) {
+                values.add(extractor.extract(resultSet));
             }
 
             return values;
@@ -351,8 +351,8 @@ public class SimpleDb {
         return preparedStatement;
     }
 
-    private PreparedStatement genPreparedStatement(String query, int statement, Object... params) throws SQLException {
-        PreparedStatement preparedStatement = getCurrentThreadConnection().prepareStatement(query, statement);
+    private PreparedStatement genPreparedStatement(String query, int statementType, Object... params) throws SQLException {
+        PreparedStatement preparedStatement = getCurrentThreadConnection().prepareStatement(query, statementType);
 
         for (int i = 0; i < params.length; i++) {
             preparedStatement.setObject(i + 1, params[i]);
@@ -361,7 +361,7 @@ public class SimpleDb {
         return preparedStatement;
     }
 
-    private Object genObject(Class c, ResultSet rs) throws Exception {
+    private Object genObject(Class<?> c, ResultSet resultSet) throws Exception {
         Object object = c.getConstructor().newInstance();
 
         for (Field field : c.getDeclaredFields()) {
@@ -371,16 +371,16 @@ public class SimpleDb {
 
             switch (type) {
                 case "Long" -> {
-                    field.set(object, rs.getLong(fieldName));
+                    field.set(object, resultSet.getLong(fieldName));
                 }
                 case "String" -> {
-                    field.set(object, rs.getString(fieldName));
+                    field.set(object, resultSet.getString(fieldName));
                 }
                 case "LocalDateTime" -> {
-                    field.set(object, rs.getTimestamp(fieldName).toLocalDateTime());
+                    field.set(object, resultSet.getTimestamp(fieldName).toLocalDateTime());
                 }
                 case "Boolean" -> {
-                    field.set(object, rs.getBoolean(fieldName));
+                    field.set(object, resultSet.getBoolean(fieldName));
                 }
             }
         }
@@ -390,6 +390,6 @@ public class SimpleDb {
 
     @FunctionalInterface
     private interface ResultSetExtractor<T> {
-        T extract(ResultSet rs) throws SQLException;
+        T extract(ResultSet resultSet) throws SQLException;
     }
 }
