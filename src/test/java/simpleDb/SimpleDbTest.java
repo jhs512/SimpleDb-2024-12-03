@@ -1,6 +1,6 @@
 package simpleDb;
 
-import com.ll.Article;
+import com.ll.simpleDb.Article;
 import com.ll.simpleDb.SimpleDb;
 import com.ll.simpleDb.Sql;
 import org.junit.jupiter.api.*;
