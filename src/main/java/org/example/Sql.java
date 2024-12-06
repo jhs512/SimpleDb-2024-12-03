@@ -11,7 +11,7 @@ public class Sql {
     private final Connection conn;
 
     private StringBuilder sb = new StringBuilder();
-    private List<Object> params = new ArrayList<>();
+    private List<Object> params = new ArrayList<>(); // 1 2 3 1 2 3
 
     public Sql(Connection conn) {
         this.conn = conn;
@@ -27,15 +27,13 @@ public class Sql {
 
     public Sql appendIn(String sqlBit, Object... params) {
 
+        int paramSize = params.length;
+        List<String> placeholder = Collections.nCopies(paramSize, "?");
+        String result = String.join(", ", placeholder); // ?, ?, ?
+
+        sb.append(sqlBit.replace("?", result)).append(" ");
 
         this.params.addAll(Arrays.asList(params));
-
-        int paramSize = params.length;
-
-        List<String> placeholder = Collections.nCopies(paramSize, "?");
-        String result = String.join(", ", placeholder);
-
-        sb.append(sqlBit.replace("?", result));
         return this;
     }
 
@@ -241,29 +239,6 @@ public class Sql {
 
     }
 
-    public Long selectLong() {
-
-        String sql = sb.toString();
-
-        try (PreparedStatement pst = conn.prepareStatement(sql)) {
-
-
-            if (!params.isEmpty()) {
-                bindParameters(pst, params);
-            }
-
-            try (ResultSet rs = pst.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getLong(1);
-                } else {
-                    throw new NoSuchElementException("Not Found Data");
-                }
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("Failed to execute SQL : " + sql + " Error : " + e.getMessage(), e);
-        }
-    }
-
     public String selectString() {
 
         String sql = sb.toString();
@@ -300,18 +275,44 @@ public class Sql {
         }
     }
 
+    public Long selectLong() {
 
-    public List<Long> selectLongs() {
         String sql = sb.toString();
+
         try (PreparedStatement pst = conn.prepareStatement(sql)) {
-            bindParameters(pst, params);
 
 
+            if (!params.isEmpty()) {
+                bindParameters(pst, params);
+            }
+
+            try (ResultSet rs = pst.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getLong(1);
+                } else {
+                    throw new NoSuchElementException("Not Found Data");
+                }
+            }
         } catch (SQLException e) {
             throw new RuntimeException("Failed to execute SQL : " + sql + " Error : " + e.getMessage(), e);
         }
+    }
 
 
-        return null;
+    public List<Long> selectLongs() {
+        String sql = sb.toString();
+        List<Long> foundIds = new ArrayList<>();
+        try (PreparedStatement pst = conn.prepareStatement(sql)) {
+            bindParameters(pst, params);
+            try (ResultSet rs = pst.executeQuery()) {
+
+                while (rs.next()) {
+                    foundIds.add(rs.getLong(1));
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to execute SQL : " + sql + " Error : " + e.getMessage(), e);
+        }
+        return foundIds;
     }
 }

@@ -93,6 +93,10 @@ public class SimpleDb {
 
         Connection conn = connectionHolder.get();
 
+        if (conn == null) {
+            throw new RuntimeException("No Start Transaction");
+        }
+
         try {
             conn.rollback();
         } catch (SQLException e) {
@@ -113,5 +117,22 @@ public class SimpleDb {
                 connectionHolder.remove();
             }
         }
+    }
+
+    public void commit() {
+
+        Connection conn = connectionHolder.get();
+        if(conn == null) {
+            throw new RuntimeException("No Start Transaction");
+        }
+
+        try {
+            conn.commit();
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to commit", e);
+        } finally {
+            closeConnection();
+        }
+
     }
 }
