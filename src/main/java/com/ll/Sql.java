@@ -84,42 +84,11 @@ public class Sql {
      * @return   affected Rows
      * */
     public long delete() {
-        try {
-            PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString());
-
-            for (int i = 1; i <= params.size(); i++) {
-                ps.setObject(i, params.get(i - 1));
-            }
-            int rs = ps.executeUpdate();
-            ps.close();
-            return rs;
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        } finally {
-            params.clear();
-        }
+        return simpleDb.delete(sqlBuilder.toString(), params.toArray());
     }
 
     public List<Map<String, Object>> selectRows() {
-        try {
-            PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString());
-            ResultSet rs = ps.executeQuery();
-
-            List<Map<String, Object>> results = new ArrayList<>();
-            while (rs.next()) {
-                Map<String, Object> row = new HashMap<>();
-                row.put("id", rs.getLong("id"));
-                row.put("title", rs.getString("title"));
-                row.put("body", rs.getString("body"));
-                row.put("createdDate", rs.getTimestamp("createdDate").toLocalDateTime());
-                row.put("modifiedDate", rs.getTimestamp("modifiedDate").toLocalDateTime());
-                row.put("isBlind", rs.getBoolean("isBlind"));
-                results.add(row);
-            }
-            return results;
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+        return simpleDb.selectRows(sqlBuilder.toString(), params.toArray());
     }
 
     /*
@@ -129,32 +98,7 @@ public class Sql {
      * @return           List<T>
      * */
     public <T> List<T> selectRows(Class<T> tClass) {
-        try {
-            PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString());
-            ResultSet rs = ps.executeQuery();
-            List<T> results = new ArrayList<>();
-
-            while (rs.next()) {
-                ObjectNode node = objectMapper.createObjectNode();
-                ResultSetMetaData metaData = rs.getMetaData();
-                int columnCount = metaData.getColumnCount();
-
-                // 컬럼 데이터를 ObjectNode에 추가
-                for (int i = 1; i <= columnCount; i++) {
-                    String columnName = metaData.getColumnLabel(i);
-                    Object value = rs.getObject(i);
-                    node.putPOJO(columnName, value);
-                }
-
-                // ObjectNode를 지정된 타입으로 매핑
-                T row = objectMapper.convertValue(node, tClass);
-                results.add(row);
-            }
-
-            return results;
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+        return simpleDb.selectRows(sqlBuilder.toString(), tClass, params.toArray());
     }
 
     /*
@@ -163,27 +107,7 @@ public class Sql {
      * @return   Map<String, Object>
      * */
     public Map<String, Object> selectRow() {
-        try {
-            PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString());
-            ResultSet rs = ps.executeQuery();
-            Map<String, Object> result = new HashMap<>();
-
-            if (rs.next()) {
-                ResultSetMetaData metaData = rs.getMetaData();
-                int columnCount = metaData.getColumnCount();
-
-                // 컬럼 데이터를 Map 추가
-                for (int i = 1; i <= columnCount; i++) {
-                    String columnName = metaData.getColumnLabel(i);
-                    Object value = rs.getObject(i);
-                    result.put(columnName, value);
-                }
-            }
-
-            return result;
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+        return simpleDb.selectRow(sqlBuilder.toString(), params.toArray());
     }
 
     /*
@@ -194,31 +118,7 @@ public class Sql {
      *
      * */
     public <T> T selectRow(Class<T> tClass) {
-        String query = sqlBuilder.toString();
-        try (
-                PreparedStatement ps = conn.prepareStatement(query);
-                ResultSet rs = ps.executeQuery();
-        ){
-            if (rs.next()) {
-                ObjectNode node = objectMapper.createObjectNode();
-                ResultSetMetaData metaData = rs.getMetaData();
-                int columnCount = metaData.getColumnCount();
-
-                // 컬럼 데이터를 ObjectNode에 추가
-                for (int i = 1; i <= columnCount; i++) {
-                    String columnName = metaData.getColumnLabel(i);
-                    Object value = rs.getObject(i);
-                    node.putPOJO(columnName, value);
-                }
-
-                // ObjectNode를 지정된 타입으로 매핑
-                return objectMapper.convertValue(node, tClass);
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-        // 데이터 없음
-        return null;
+        return simpleDb.selectRow(sqlBuilder.toString(), tClass, params.toArray());
     }
 
     /*
@@ -227,42 +127,17 @@ public class Sql {
      * @return   LocalDateTime
      * */
     public LocalDateTime selectDatetime() {
-        try (
-            Statement stmt = conn.createStatement()
-        ) {
-            ResultSet rs = stmt.executeQuery(sqlBuilder.toString());
-            LocalDateTime result = null;
-            while (rs.next()) {
-                result = rs.getTimestamp("now()").toLocalDateTime();
-            }
-            rs.close();
-            return result;
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+        return simpleDb.selectDateTime(sqlBuilder.toString(), params.toArray());
     }
 
     /*
      * 단 건의 결과 행에서 특정 칼럼의 Long 값 반환
      *
-     * @return   칼럼의 Long 값
+     * @return   칼럼의 long 값
      * */
-    public Long selectLong() {
-        try (
-            PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString())
-        ) {
-
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                return rs.getLong(1);
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-        // 실패
-        return 0L;
+    public long selectLong() {
+        return simpleDb.selectLong(sqlBuilder.toString(), params.toArray());
     }
-
 
     /*
      * 단 건의 결과 행에서 특정 칼럼의 String 값 반환
@@ -270,19 +145,7 @@ public class Sql {
      * @return   칼럼의 String 값
      * */
     public String selectString() {
-        try (
-                PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString());
-                ResultSet rs = ps.executeQuery(sqlBuilder.toString());
-        ) {
-            if (rs.next()) {
-                return rs.getString("title");
-            }
-
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-        // 실패
-        return null;
+        return simpleDb.selectString(sqlBuilder.toString(), params.toArray());
     }
 
     /*
@@ -291,20 +154,7 @@ public class Sql {
      * @return   칼럼의 boolean 값 (실패 시 false)
      * */
     public Boolean selectBoolean() {
-        try (
-                PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString());
-                ResultSet rs = ps.executeQuery(sqlBuilder.toString());
-        ) {
-            boolean result = false;
-
-            if (rs.next()) {
-                result = rs.getBoolean(1);
-            }
-            rs.close();
-            return result;
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+        return simpleDb.selectBoolean(sqlBuilder.toString(), params.toArray());
     }
 
     /*
@@ -313,25 +163,6 @@ public class Sql {
      * @return List<Long> long 리스트 반환
      * */
     public List<Long> selectLongs() {
-        try (
-                PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString());
-        ) {
-            ResultSet rs = ps.executeQuery();
-
-            List<Long> results = new ArrayList<>();
-
-            while (rs.next()) {
-                results.add(rs.getLong(1));
-            }
-
-            rs.close();
-            return results;
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+        return simpleDb.selectLongs(sqlBuilder.toString(), params.toArray());
     }
-
-
-
-
 }

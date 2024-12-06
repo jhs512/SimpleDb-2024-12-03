@@ -1,13 +1,11 @@
 package com.ll;
 
 
+import com.ll.util.Util;
 import lombok.Setter;
-
-import javax.sql.DataSource;
-import javax.xml.transform.Result;
 import java.sql.*;
-import java.util.Arrays;
-import java.util.List;
+import java.time.LocalDateTime;
+import java.util.*;
 
 
 public class SimpleDb {
@@ -29,10 +27,8 @@ public class SimpleDb {
     }
 
     private <T> T executeUpdate(PreparedStatement ps, Class<T> cls) throws SQLException {
-        int afftedRows = ps.executeUpdate();
+        ps.executeUpdate();
         ResultSet generatedKeys = ps.getGeneratedKeys();
-
-
         if (generatedKeys.next() && cls == Long.class) {
             return (T) (Long) generatedKeys.getLong(1);
         } else {
@@ -40,7 +36,6 @@ public class SimpleDb {
         }
     }
 
-    // 내부 SQL 실행 메서드
     private <T> T _run(String sql, Class<T> cls, Object... params) {
         Connection conn = getConnection();
         sql = sql.trim();
@@ -48,18 +43,61 @@ public class SimpleDb {
         try (PreparedStatement preparedStatement = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
             bindParams(preparedStatement, params);
             loggingSql(preparedStatement);
-            if (sql.startsWith("INSERT")) {
+
+            if (sql.startsWith("INSERT") || sql.startsWith("UPDATE") || sql.startsWith("DELETE")) {
                 return executeUpdate(preparedStatement, cls);
             }
             else if (sql.startsWith("SELECT")) {
                 try (ResultSet rs = preparedStatement.executeQuery()) {
-                    return null;
+                    return parseResultSet(rs, cls);
                 }
             }
+
             return (T) (Integer) preparedStatement.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("SQL 실행 실패 : " + e.getMessage(), e);
         }
+    }
+
+    private Map<String, Object> parseResulSetToMap(ResultSet rs) throws SQLException {
+        ResultSetMetaData metaData = rs.getMetaData();
+        int columnCount = metaData.getColumnCount();
+
+        Map<String, Object> rows = new LinkedHashMap<>();
+        for(int i=1;i<=columnCount;i++){
+            String columnName = metaData.getColumnName(i);
+            Object value = switch(metaData.getColumnType(i)){
+                case Types.BIGINT -> rs.getLong(columnName);
+                case Types.BOOLEAN -> rs.getBoolean(columnName);
+                case Types.TIMESTAMP -> {
+                    Timestamp timestamp = rs.getTimestamp(columnName);
+                    yield (timestamp != null) ? timestamp.toLocalDateTime() : null;
+                }
+                default -> rs.getObject(columnName);
+            };
+            rows.put(columnName, value);
+        }
+        return rows;
+    }
+
+    private <T> T parseResultSet(ResultSet rs, Class<T> cls) throws SQLException {
+        if(!rs.next()) throw new NoSuchElementException("데이터 없음");
+
+        return switch(cls.getSimpleName()){
+            case "Long" -> (T) (Long) rs.getLong(1);
+            case "Boolean" -> (T) (Boolean) rs.getBoolean(1);
+            case "String" -> (T) (String) rs.getString(1);
+            case "LocalDateTime" -> (T) (LocalDateTime) rs.getTimestamp(1).toLocalDateTime();
+            case "Map" -> (T) parseResulSetToMap(rs);
+            case "List" -> {
+                List<Map<String, Object>> rows = new ArrayList<>();
+                do {
+                    rows.add(parseResulSetToMap(rs));
+                }while(rs.next());
+                yield (T) rows;
+            }
+            default -> throw new IllegalStateException("Unexpected value: " + cls.getSimpleName());
+        };
     }
 
     /*
@@ -97,7 +135,7 @@ public class SimpleDb {
     }
 
     /*
-     * 전달받은 PreparedStatement에 인자를 채우고 리스트를 초기화
+     * 전달받은 PreparedStatement에 인자를 채움
      *
      * @param ps        PreparedStatement
      * @param params    Object[]
@@ -163,5 +201,52 @@ public class SimpleDb {
 
     public int update(String sql, Object[] params) {
         return _run(sql, Integer.class, params);
+    }
+
+    public long delete(String sql, Object[] params) {
+        return _run(sql, Integer.class, params);
+    }
+
+    public long selectLong(String sql, Object[] params) {
+        return _run(sql, Long.class, params);
+    }
+
+    public Map<String, Object> selectRow(String sql, Object[] params) {
+        return _run(sql, Map.class, params);
+    }
+
+    public  <T> T selectRow(String sql, Class<T> tClass, Object[] params) {
+        Map<String, Object> result = selectRow(sql, params);
+        return Util.mapper.mapToObj(result, tClass);
+    }
+
+    public <T> List<T> selectRows(String sql, Class<T> tClass, Object[] params) {
+        return selectRows(sql, params)
+                .stream()
+                .map(row -> (T) Util.mapper.mapToObj(row, tClass))
+                .toList();
+    }
+
+    public List<Map<String, Object>> selectRows(String sql, Object[] params){
+        return _run(sql, List.class, params);
+    }
+
+    public Boolean selectBoolean(String sql, Object[] params) {
+        return _run(sql, Boolean.class, params);
+    }
+
+    public String selectString(String sql, Object[] params) {
+        return _run(sql, String.class, params);
+    }
+
+    public List<Long> selectLongs(String sql, Object[] params) {
+        return selectRows(sql, params)
+                .stream()
+                .map(row -> (Long) row.values().iterator().next())
+                .toList();
+    }
+
+    public LocalDateTime selectDateTime(String sql, Object[] params) {
+        return _run(sql, LocalDateTime.class, params);
     }
 }
