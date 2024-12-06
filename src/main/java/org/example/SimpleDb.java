@@ -134,21 +134,8 @@ public class SimpleDb {
         try {
             PreparedStatement preparedStatement = genPreparedStatement(query, params);
             ResultSet resultSet = preparedStatement.executeQuery();
-            List<Map<String, Object>> results = new ArrayList<>();
 
-            while (resultSet.next()) {
-                Map<String, Object> result = new HashMap<>();
-                result.put("id", resultSet.getLong("id"));
-                result.put("title", resultSet.getString("title"));
-                result.put("body", resultSet.getString("body"));
-                result.put("createdDate", resultSet.getTimestamp("createdDate").toLocalDateTime());
-                result.put("modifiedDate", resultSet.getTimestamp("modifiedDate").toLocalDateTime());
-                result.put("isBlind", resultSet.getBoolean("isBlind"));
-
-                results.add(result);
-            }
-
-            return results;
+            return genObjectMaps(resultSet);
         } catch (SQLException e) {
             throw new RuntimeException();
         } finally {
@@ -167,17 +154,9 @@ public class SimpleDb {
             PreparedStatement preparedStatement = genPreparedStatement(query, params);
 
             ResultSet resultSet = preparedStatement.executeQuery();
-            Map<String, Object> result = new HashMap<>();
             if (resultSet.next()) {
-                result.put("id", resultSet.getLong("id"));
-                result.put("title", resultSet.getString("title"));
-                result.put("body", resultSet.getString("body"));
-                result.put("createdDate", resultSet.getTimestamp("createdDate").toLocalDateTime());
-                result.put("modifiedDate", resultSet.getTimestamp("modifiedDate").toLocalDateTime());
-                result.put("isBlind", resultSet.getBoolean("isBlind"));
+                return genObjectMap(resultSet);
             }
-
-            return result;
         } catch (SQLException e) {
             throw new RuntimeException();
         } finally {
@@ -189,6 +168,7 @@ public class SimpleDb {
                 throw new RuntimeException();
             }
         }
+        return null;
     }
 
     public List<Object> selectRows(String query, Class<?> c, Object... params) {
@@ -386,6 +366,34 @@ public class SimpleDb {
         }
 
         return object;
+    }
+
+    private List<Map<String, Object>> genObjectMaps(ResultSet resultSet) throws SQLException {
+        List<Map<String, Object>> results = new ArrayList<>();
+
+        while (resultSet.next()) {
+            results.add(genObjectMap(resultSet));
+        }
+
+        return results;
+    }
+
+    private Map<String, Object> genObjectMap(ResultSet resultSet) throws SQLException {
+        Map<String, Object> result = new HashMap<>();
+        ResultSetMetaData metaData = resultSet.getMetaData();
+
+        for (int i = 1; i <= metaData.getColumnCount(); i++) {
+            String columnName = metaData.getColumnName(i);
+            Object value = switch(metaData.getColumnType(i)) {
+                case Types.BIGINT -> resultSet.getLong(columnName);
+                case Types.TIMESTAMP -> resultSet.getTimestamp(columnName).toLocalDateTime();
+                case Types.BOOLEAN -> resultSet.getBoolean(columnName);
+                default -> resultSet.getObject(columnName);
+            };
+
+            result.put(columnName, value);
+        }
+        return result;
     }
 
     @FunctionalInterface
