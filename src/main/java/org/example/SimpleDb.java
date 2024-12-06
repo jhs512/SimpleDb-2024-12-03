@@ -79,14 +79,14 @@ public class SimpleDb {
 
             pstmt.executeUpdate();
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException();
         } finally {
             try {
                 if (getCurrentThreadConnection().getAutoCommit()) {
                     clearCurrentThreadConnection();
                 }
             } catch (SQLException e) {
-                new RuntimeException();
+                throw new RuntimeException();
             }
         }
     }
@@ -102,14 +102,14 @@ public class SimpleDb {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException();
         } finally {
             try {
                 if (getCurrentThreadConnection().getAutoCommit()) {
                     clearCurrentThreadConnection();
                 }
             } catch (SQLException e) {
-                new RuntimeException();
+                throw new RuntimeException();
             }
         }
         return -1;
@@ -119,17 +119,16 @@ public class SimpleDb {
         try {
             return genPreparedStatement(query, params).executeUpdate();
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException();
         } finally {
             try {
                 if (getCurrentThreadConnection().getAutoCommit()) {
                     clearCurrentThreadConnection();
                 }
             } catch (SQLException e) {
-                new RuntimeException();
+                throw new RuntimeException();
             }
         }
-        return -1;
     }
 
     public List<Map<String, Object>> selectRows(String query, Object... params) {
@@ -152,17 +151,16 @@ public class SimpleDb {
 
             return results;
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException();
         } finally {
             try {
                 if (getCurrentThreadConnection().getAutoCommit()) {
                     clearCurrentThreadConnection();
                 }
             } catch (SQLException e) {
-                new RuntimeException();
+                throw new RuntimeException();
             }
         }
-        return null;
     }
 
     public Object selectRow(String query, Class c, Object... params) {
@@ -173,14 +171,14 @@ public class SimpleDb {
                 return genObject(c, rs);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new RuntimeException();
         } finally {
             try {
                 if (getCurrentThreadConnection().getAutoCommit()) {
                     clearCurrentThreadConnection();
                 }
             } catch (SQLException e) {
-                new RuntimeException();
+                throw new RuntimeException();
             }
         }
         return null;
@@ -197,17 +195,16 @@ public class SimpleDb {
 
             return result;
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new RuntimeException();
         } finally {
             try {
                 if (getCurrentThreadConnection().getAutoCommit()) {
                     clearCurrentThreadConnection();
                 }
             } catch (SQLException e) {
-                new RuntimeException();
+                throw new RuntimeException();
             }
         }
-        return null;
     }
 
     public Map<String, Object> selectRow(String query, Object... params) {
@@ -227,17 +224,16 @@ public class SimpleDb {
 
             return result;
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException();
         } finally {
             try {
                 if (getCurrentThreadConnection().getAutoCommit()) {
                     clearCurrentThreadConnection();
                 }
             } catch (SQLException e) {
-                new RuntimeException();
+                throw new RuntimeException();
             }
         }
-        return null;
     }
 
     public LocalDateTime selectDatetime(String query, Object... params) {
@@ -278,7 +274,7 @@ public class SimpleDb {
         try {
             getCurrentThreadConnection().setAutoCommit(false);
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException();
         }
     }
 
@@ -286,7 +282,7 @@ public class SimpleDb {
         try {
             getCurrentThreadConnection().rollback();
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException();
         }
     }
 
@@ -295,7 +291,7 @@ public class SimpleDb {
             getCurrentThreadConnection().commit();
             getCurrentThreadConnection().setAutoCommit(true);
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException();
         }
     }
 
@@ -308,14 +304,14 @@ public class SimpleDb {
                 return extractor.extract(rs);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException();
         } finally {
             try {
                 if (getCurrentThreadConnection().getAutoCommit()) {
                     clearCurrentThreadConnection();
                 }
             } catch (SQLException e) {
-                new RuntimeException();
+                throw new RuntimeException();
             }
         }
         return null;
@@ -333,17 +329,16 @@ public class SimpleDb {
 
             return values;
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException();
         } finally {
             try {
                 if (getCurrentThreadConnection().getAutoCommit()) {
                     clearCurrentThreadConnection();
                 }
             } catch (SQLException e) {
-                new RuntimeException();
+                throw new RuntimeException();
             }
         }
-        return null;
     }
 
     private PreparedStatement genPreparedStatement(String query, Object... params) throws SQLException {
