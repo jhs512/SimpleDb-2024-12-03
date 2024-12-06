@@ -241,7 +241,6 @@ public class Sql {
 
     }
 
-    // todo param 이 없어도 동작하고 있어도 동작해야함
     public Long selectLong() {
 
         String sql = sb.toString();
